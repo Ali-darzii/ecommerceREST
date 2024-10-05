@@ -1,0 +1,74 @@
+services:
+#  postgres db & postgres admin panel
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ecommerce-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: youremail@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: your_password
+      PGADMIN_LISTEN_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - django-network
+  postgres:
+    image: postgres:latest
+    container_name: ecommerce-postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: ecommerce
+      PGDATA: /data/postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - database-postgres:/data/postgres
+    networks:
+      django-network:
+        aliases:
+          - postgres-db
+
+# auth-service
+  auth-backend:
+    build: ./auth-service
+    image: micro-auth-service:latest
+    container_name: micro-python-django-backend-auth
+    working_dir: /code/auth-service
+    volumes:
+      - ./auth-service:/code/auth-service
+    environment:
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - DEBUG=True
+      - SECRET_KEY=HereIsYourSecret_Keyqweroqpowek12312313
+      - PostgresUser=admin
+      - PostgresPass=admin
+      - PostgresHost=postgres
+      - PostgresPort=5432
+      - PostgresName=ecommerce
+      - RedisHost=redis
+      - RedisPort=6379
+      - RedisDB=2
+    ports:
+      - "7777:7777"
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:7777"
+    # following command is used in production mode
+    # command: sh -c "python manage.py migrate && gunicorn -c gunicorn.conf.py Auth.wsgi:application"
+    networks:
+      - django-network
+    restart: on-failure
+  auth-redis-master:
+    image: redis:7.0.11-alpine
+    container_name: micro-auth-redis-master
+    networks:
+      django-network:
+        aliases:
+          - redis-master
+
+volumes:
+  database-postgres:
+networks:
+  django-network:
+    driver: bridge
+

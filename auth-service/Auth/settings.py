@@ -54,7 +54,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'ecommerceREST.urls'
+ROOT_URLCONF = 'Auth.urls'
 
 TEMPLATES = [
     {
@@ -73,7 +73,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'ecommerceREST.wsgi.application'
+WSGI_APPLICATION = 'Auth.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -137,6 +137,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# todo: need AWS
 MEDIA_ROOT = BASE_DIR / 'uploads'
 MEDIA_URL = '/medias/'
 

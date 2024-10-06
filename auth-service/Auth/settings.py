@@ -38,10 +38,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # External
+    'django_user_agents',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     # Internal
+    'core',
 ]
 
 MIDDLEWARE = [
@@ -52,6 +54,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_user_agents.middleware.UserAgentMiddleware',
 ]
 
 ROOT_URLCONF = 'Auth.urls'
@@ -74,6 +77,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'Auth.wsgi.application'
+AUTH_USER_MODEL = 'core.User'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
@@ -88,6 +92,7 @@ DATABASES = {
         'PORT': os.getenv('PostgresPort'),
     }
 }
+
 
 CACHES = {
     'default': {
@@ -158,6 +163,7 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=3),
+    'UPDATE_LAST_LOGIN': True,
 }
 
 # Email Configs

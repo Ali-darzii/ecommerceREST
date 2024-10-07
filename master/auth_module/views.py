@@ -17,7 +17,7 @@ class EmailAuthentication(APIView):
     permission_classes = (NotAuthenticated,)
 
     def post(self, request):
-        """ user register with email """
+        """ user register with phone and password """
         serializer = RegisterRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = User(is_active=True)
@@ -33,7 +33,7 @@ class EmailAuthentication(APIView):
         return Response(data, status=status.HTTP_201_CREATED)
 
     def put(self, request):
-        """ user login with email """
+        """ user login with phone and password """
         serializer = LoginRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         # phone exist

@@ -12,7 +12,7 @@ services:
     depends_on:
       - postgres
     networks:
-      - django-network
+      - live
   postgres:
     image: postgres:latest
     container_name: ecommerce-postgres
@@ -24,20 +24,16 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - database-postgres:/data/postgres
+      - postgres_data:/var/lib/postgresql/data
     networks:
-      django-network:
-        aliases:
-          - postgres-db
-
-# auth-service
-  auth-backend:
-    build: ./auth-service
-    image: micro-auth-service:latest
-    container_name: micro-python-django-backend-auth
-    working_dir: /code/auth-service
+      - live
+  backend:
+    build:
+      context: ./master
+      dockerfile: Dockerfile
+    container_name: python-django-backend
     volumes:
-      - ./auth-service:/code/auth-service
+      - ./master:/app/
     environment:
       - ALLOWED_HOSTS=localhost,127.0.0.1
       - DEBUG=True
@@ -51,24 +47,21 @@ services:
       - RedisPort=6379
       - RedisDB=2
     ports:
-      - "7777:7777"
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:7777"
+      - "8000:8000"
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     # following command is used in production mode
     # command: sh -c "python manage.py migrate && gunicorn -c gunicorn.conf.py Auth.wsgi:application"
     networks:
-      - django-network
+      - live
     restart: on-failure
-  auth-redis-master:
+  redis:
     image: redis:7.0.11-alpine
-    container_name: micro-auth-redis-master
+    container_name: ecommerce-redis
     networks:
-      django-network:
-        aliases:
-          - redis-master
+      - live
 
 volumes:
-  database-postgres:
+  postgres_data:
 networks:
-  django-network:
-    driver: bridge
+  live:
 

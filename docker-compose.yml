@@ -1,5 +1,5 @@
 services:
-#  postgres db & postgres admin panel
+  #  postgres db & postgres admin panel
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: ecommerce-pgadmin
@@ -59,7 +59,41 @@ services:
     container_name: ecommerce-redis
     networks:
       - live
-
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    ports:
+      - "5672:6572"
+      - "15672:15672"
+    networks:
+      - live
+  celery:
+    container_name: ecommerce-celery
+    build:
+      context: ./master
+      dockerfile: Dockerfile
+    command: celery --app=ecommerce worker -l INFO -Q tasks -B --concurrency=1
+    volumes:
+      - ./master:/app/
+    environment:
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - DEBUG=True
+      - SECRET_KEY=HereIsYourSecret_Keyqweroqpowek12312313
+      - PostgresUser=admin
+      - PostgresPass=admin
+      - PostgresHost=postgres
+      - PostgresPort=5432
+      - PostgresName=ecommerce
+      - RedisHost=redis
+      - RedisPort=6379
+      - RedisDB=2
+    depends_on:
+      - backend
+      - redis
+      - rabbitmq
+      - postgres
+    networks:
+      - live
 volumes:
   postgres_data:
 networks:

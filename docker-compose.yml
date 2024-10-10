@@ -31,7 +31,7 @@ services:
     build:
       context: ./master
       dockerfile: Dockerfile
-    container_name: python-django-backend
+    container_name: ecommerce-backend
     volumes:
       - ./master:/app/
     environment:
@@ -61,7 +61,7 @@ services:
       - live
   rabbitmq:
     image: rabbitmq:management
-    container_name: rabbitmq
+    container_name: ecommerce-rabbitmq
     ports:
       - "5672:6572"
       - "15672:15672"
@@ -72,7 +72,7 @@ services:
     build:
       context: ./master
       dockerfile: Dockerfile
-    command: celery --app=ecommerce worker -l INFO -Q tasks -B --concurrency=1
+    command: celery --app=ecommerce worker -l INFO -Q tasks -B -E --concurrency=1
     volumes:
       - ./master:/app/
     environment:

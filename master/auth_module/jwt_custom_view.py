@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.response import Response
 from rest_framework import status
 from auth_module.models import User
-from tasks import user_logged_in_failed, user_logged_in
+from .tasks import user_logged_in_failed, user_logged_in
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):

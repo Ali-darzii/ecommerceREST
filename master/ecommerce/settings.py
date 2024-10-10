@@ -30,6 +30,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 # Application definition
 
 INSTALLED_APPS = [
+    'auth_module',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,7 +43,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     # Internal
-    'auth_module',
+
 ]
 
 MIDDLEWARE = [
@@ -85,7 +86,7 @@ OTP_TIME_EXPIRE_DATA = 60
 # sms webservice
 PHONE_TEXT_MESSAGE = "رمز ورود شما در سایت ایکامرس NUMBER می‌باشد."
 
-SMS_SERVICE_DOMAIN = "https://api.limosms.com/api/sendsms"
+SMS_SERVICE_DOMAIN = "https://api.limosms.com/api/sendpatternmessage"
 SMS_SERVICE_NUMBER = "10000000002027"
 SMS_SERVICE_API_KEY = "89296788-e836-4353-bc35-23cd7de133df"
 # Database

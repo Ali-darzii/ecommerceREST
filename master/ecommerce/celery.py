@@ -1,13 +1,12 @@
 import os
 from celery import Celery
 from kombu import Exchange, Queue
-
+from django.conf import settings
 """ Celery Configs"""
-
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ecommerce.settings')
 app = Celery('ecommerce')
-app.config_from_object('django.conf:settings', namespace='CELERY')
-
+app.conf.broker_url = settings.CELERY_BROKER_URL
+app.conf.result_backend = settings.CELERY_RESULT_BACKEND
 app.conf.task_queues = [
     Queue('tasks', Exchange('tasks'), routing_key='tasks',
           queue_arguments={'x-max-priority': 10}),

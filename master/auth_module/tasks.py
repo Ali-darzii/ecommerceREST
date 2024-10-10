@@ -14,8 +14,8 @@ def send_message(phone_no, token):
     api_key = settings.SMS_SERVICE_API_KEY
     payload_json = {
         "OtpId": "805",
-        "ReplaceToken": [token],
-        "MobileNumber": phone_no
+        "ReplaceToken": [str(token)],
+        "MobileNumber": str(phone_no)
     }
 
     for i in range(3):
@@ -23,7 +23,8 @@ def send_message(phone_no, token):
         request_response = simplejson.loads(request.text)
         if request.status_code == status.HTTP_200_OK:
             if request_response["success"] is True:
-                break
+                return {"OTP": True}
+        return {"OTP": False}
 
 
 @shared_task(queue="tasks")

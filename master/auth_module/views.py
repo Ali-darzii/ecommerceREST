@@ -32,13 +32,13 @@ class OTPRegisterAuthentication(APIView):
         token = otp_code_generator()
 
         last_code = redis.get(f"{phone_no}_otp")
-        if not last_code:
+        if last_code is None:
             redis.set(f'{phone_no}_otp', token)
             redis.expire(f'{phone_no}_otp', otp_exp)
         else:
             return Response(data={'detail': "not sent, please wait."}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
-        send_message(phone_no, token).apply_async(priority=9)
+        send_message.apply_async(args=(phone_no, token))
 
         return Response(data={"detail": "Sent"}, status=status.HTTP_201_CREATED)
 

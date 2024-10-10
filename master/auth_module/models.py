@@ -7,8 +7,12 @@ from django.dispatch import receiver
 
 class User(AbstractUser):
     username = None
-    phone_no = models.CharField(_("phone number"), unique=True)
+    phone_no = models.CharField(_("phone number"), unique=True, max_length=11)
     USERNAME_FIELD = "phone_no"
+    REQUIRED_FIELDS = []
+
+    def __str__(self):
+        return self.phone_no
 
 
 class UserProfile(models.Model):

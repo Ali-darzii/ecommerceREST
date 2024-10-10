@@ -1,60 +1,14 @@
-import random
-
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import SET_NULL
-from django.contrib.auth.validators import UnicodeUsernameValidator as username_validator
-from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
-from datetime import timedelta
+from django.utils.translation import gettext_lazy as _
+
 
 class User(AbstractUser):
-    username = models.CharField(
-        _("username"),
-        max_length=150,
-        unique=True,
-        blank=True,
-        help_text=_(
-            "Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only."
-        ),
-        validators=[username_validator],
-        error_messages={
-            "unique": _("A user with that username already exists."),
-        },
-    )
+    username = None
+    phone_no = models.CharField(_("phone number"), unique=True)
+    USERNAME_FIELD = "phone_no"
 
-
-class PhoneMessage(models.Model):
-    user = models.OneToOneField(
-        User,
-        on_delete=SET_NULL,
-        related_name='phone_message',
-        null=True,
-        blank=True
-    )
-    token = models.CharField(max_length=6, null=True)
-    expiration_time = models.DateTimeField()
-    phone_no = models.CharField(max_length=11, unique=True)
-
-    def __str__(self):
-
-        try:
-            return self.user.username + '_phone'
-        except:
-            return self.phone_no + '_phone_message'
-
-    class Meta:
-        db_table = 'PhoneMessage_DB'
-        verbose_name = 'User PhoneMessage'
-        verbose_name_plural = 'Users PhoneMessage'
-
-    def set_tk(self):
-        self.token = random.randrange(1000, 9999)
-        self.save()
-
-    def set_expiration_time(self):
-        self.expiration_time = timezone.now() + timedelta(minutes=5)
-        self.save()
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_profiles')
@@ -62,8 +16,6 @@ class UserProfile(models.Model):
     address = models.TextField(null=True)
     city = models.CharField(max_length=100, null=True)
     postal_code = models.IntegerField(null=True)
-
-    # todo:phone
 
     def __str__(self):
         return str(self.user.first_name) + '_profile'

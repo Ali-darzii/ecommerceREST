@@ -77,7 +77,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'ecommerce.wsgi.application'
 AUTH_USER_MODEL = 'auth_module.User'
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_USERNAME_REQUIRED = False
 
+# in Redis
+OTP_TIME_EXPIRE_DATA = 60
+# sms webservice
+PHONE_TEXT_MESSAGE = "رمز ورود شما در سایت ایکامرس NUMBER می‌باشد."
+
+SMS_SERVICE_DOMAIN = "https://api.limosms.com/api/sendsms"
+SMS_SERVICE_NUMBER = "10000000002027"
+SMS_SERVICE_API_KEY = "89296788-e836-4353-bc35-23cd7de133df"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -91,7 +101,6 @@ DATABASES = {
         'PORT': os.getenv('PostgresPort'),
     }
 }
-
 
 CACHES = {
     'default': {
@@ -172,3 +181,8 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'ali.darrzi.1382@gmail.com'
 EMAIL_HOST_PASSWORD = 'pmmmvkfijdjbgrni'
 EMAIL_PORT = 587
+
+# Celery configs
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER', 'amqp://guest:guest@rabbitmq:5672/')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_BACKEND',
+                                       f"redis://{os.environ.get('RedisHost', 'redis')}:{os.environ.get('RedisPort', '6379')}/{os.environ.get('RedisDB')}", )

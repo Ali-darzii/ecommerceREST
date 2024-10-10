@@ -36,12 +36,10 @@ def get_sms_text_message(token):
 
 def send_message(phone_no, token):
     url = settings.SMS_SERVICE_DOMAIN
-    sender_number = settings.SMS_SERVICE_NUMBER
     api_key = settings.SMS_SERVICE_API_KEY
-    sms_text_message = get_sms_text_message(str(token))
     payload_json = {
-        "Message": sms_text_message,
-        "SenderNumber": sender_number,
+        "OtpId": "805",
+        "ReplaceToken": [str(token)],
         "MobileNumber": phone_no
     }
 

@@ -34,7 +34,7 @@ class PhoneAuthentication(APIView):
         else:
             return Response(data={'detail': "not sent, please wait."}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
-        send_message([phone_no], token).apply_async()
+        send_message(phone_no, token).apply_async()
 
         is_signup = True
         if User.objects.filter(phone_no=phone_no).exists():

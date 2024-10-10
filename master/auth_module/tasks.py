@@ -3,13 +3,13 @@ from celery import shared_task
 from django.conf import settings
 import requests
 from rest_framework import status
-from utils.utils import get_sms_text_message
+
+from auth_module.models import UserLogins, UserIP, UserDevice
+from utils.utils import get_client_ip
 
 
 @shared_task(queue="tasks")
 def send_message(phone_no, token):
-    # sms_text_message = get_sms_text_message(str(token))
-    # sender_number = settings.SMS_SERVICE_NUMBER
     url = settings.SMS_SERVICE_DOMAIN
     api_key = settings.SMS_SERVICE_API_KEY
     payload_json = {
@@ -27,5 +27,37 @@ def send_message(phone_no, token):
 
 
 @shared_task(queue="tasks")
-def user_logged_in():
-    pass
+def user_created(request, user):
+    user_login = UserLogins.objects.create(user=user, no_logins=1)
+    UserIP.objects.create(user_login=user_login, ip=get_client_ip(request))
+    device = UserDevice.get_user_device(request, user)
+    device.save()
+
+
+@shared_task(queue="tasks")
+def user_logged_in(request, user):
+    try:
+        user_login = UserLogins.objects.get(user=user)
+        user_login.no_logins += 1
+        user_login.save()
+        user_login.ips.ip = get_client_ip(request)
+        user_login.ips.save()
+        user_login.devices.get_user_device(request, user)
+        user_login.devices.save()
+    except UserLogins.DoesNotExist:
+        pass
+
+
+@shared_task(queue="tasks")
+def user_logged_in_failed(request, user):
+    try:
+        user_login = UserLogins.objects.get(user=user)
+        user_login.failed_attempts += 1
+        user_login.save()
+        user_login.ips.ip = get_client_ip(request)
+        user_login.ips.failed = True
+        user_login.ips.save()
+        user_login.devices.get_user_device(request, user)
+        user_login.devices.save()
+    except UserLogins.DoesNotExist:
+        pass

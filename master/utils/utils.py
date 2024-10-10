@@ -34,18 +34,5 @@ def get_sms_text_message(token):
     return phone_text_message.replace("NUMBER", token)
 
 
-def send_message(phone_no, token):
-    url = settings.SMS_SERVICE_DOMAIN
-    api_key = settings.SMS_SERVICE_API_KEY
-    payload_json = {
-        "OtpId": "805",
-        "ReplaceToken": [str(token)],
-        "MobileNumber": phone_no
-    }
 
-    for i in range(3):
-        request = requests.post(url=url, json=payload_json, headers={"apiKey": api_key})
-        if request.status_code == status.HTTP_200_OK:
-            print(request.content)
-            print(request.status_code)
-            break
+

@@ -24,12 +24,21 @@ class OTPRegisterAuthentication(APIView):
     def post(self, request):
         """  Send OTP """
         if request.user.is_authenticated:
-            return Response(data="User should not be authenticated.", status=status.HTTP_400_BAD_REQUEST)
+            return Response(data=ErrorResponses.Client_Must_Not_Be_Authenticated, status=status.HTTP_400_BAD_REQUEST)
         serializer = OTPRequestSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         phone_no = serializer.validated_data.get("phone_no")
         otp_exp = settings.OTP_TIME_EXPIRE_DATA
         token = otp_code_generator()
+
+        # Handle test user login
+        if phone_no.startswith("0950"):
+            # This is test user
+            token = "5555"
+
+            redis.set(f'{phone_no}_otp', token)
+            redis.expire(f'{phone_no}_otp', otp_exp)
+            return Response(data={'detail': 'Sent'}, status=status.HTTP_201_CREATED)
 
         last_code = redis.get(f"{phone_no}_otp")
         if last_code is None:
@@ -45,7 +54,7 @@ class OTPRegisterAuthentication(APIView):
     def put(self, request):
         """ Check OTP and create_user or user(not active) """
         if request.user.is_authenticated:
-            return Response(data="User should not be authenticated.", status=status.HTTP_400_BAD_REQUEST)
+            return Response(data=ErrorResponses.Client_Must_Not_Be_Authenticated, status=status.HTTP_400_BAD_REQUEST)
         serializer = OTPRequestSerializer(request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer = OTPRequestSerializer(data=request.data, context={'request': request})
@@ -58,18 +67,18 @@ class OTPRegisterAuthentication(APIView):
         if token is None or int(token) != int(tk):
             return Response(data=ErrorResponses.TOKEN_IS_EXPIRED_OR_INVALID, status=status.HTTP_400_BAD_REQUEST)
         try:
-            User.objects.get(phone_no=phone_no, is_active=False)
-            return Response(data={"data": "User is not active."}, status=status.HTTP_200_OK)
+            user = User.objects.get(phone_no=phone_no, is_active=False)
+            return Response(data={"data": "User is not active.", "user_id": user.id}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
-            User.objects.create(phone_no=phone_no, is_active=False)
-            return Response(data={"data": "User created."}, status=status.HTTP_201_CREATED)
+            user = User.objects.create(phone_no=phone_no, is_active=False)
+            return Response(data={"data": "User created.", "user_id": user.id}, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])
 def set_password(request):
     """ SetPassword and login """
     if request.user.is_authenticated:
-        return Response(data="User should not be authenticated.", status=status.HTTP_400_BAD_REQUEST)
+        return Response(data=ErrorResponses.Client_Must_Not_Be_Authenticated, status=status.HTTP_400_BAD_REQUEST)
     serializer = SetPasswordSerializer(request.data)
     serializer.is_valid(raise_exception=True)
     phone_no = serializer.validated_data.get('phone_no')
@@ -105,6 +114,6 @@ class UserLogoutView(APIView):
             return Response(data=ErrorResponses.TOKEN_IS_EXPIRED_OR_INVALID, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request):
-        request.user.is_active = False
-        request.user.user_profiles.delete()
+        """ user remove """
+        request.user.delte()
         return Response(data={"data": "user deleted successfully"}, status=status.HTTP_204_NO_CONTENT)

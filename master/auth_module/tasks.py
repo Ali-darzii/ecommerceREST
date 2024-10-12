@@ -33,6 +33,7 @@ def user_created(request, user):
     UserIP.objects.create(user_login=user_login, ip=get_client_ip(request))
     device = UserDevice.get_user_device(request, user)
     device.save()
+    return {"user_created": True}
 
 
 @shared_task(queue="tasks")
@@ -45,8 +46,9 @@ def user_logged_in(request, user):
         user_login.ips.save()
         user_login.devices.get_user_device(request, user)
         user_login.devices.save()
+        return {"user_logged_in": True}
     except UserLogins.DoesNotExist:
-        pass
+        return {"user_logged_in": False}
 
 
 @shared_task(queue="tasks")
@@ -60,5 +62,7 @@ def user_logged_in_failed(request, user):
         user_login.ips.save()
         user_login.devices.get_user_device(request, user)
         user_login.devices.save()
+        return {"user_logged_in_failed": True}
     except UserLogins.DoesNotExist:
-        pass
+        return {"user_logged_in_failed": False}
+

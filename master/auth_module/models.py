@@ -84,4 +84,3 @@ class UserDevice(models.Model):
         verbose_name = 'User Devices'
         verbose_name_plural = 'User Device'
         db_table = 'UserDevice_DB'
-

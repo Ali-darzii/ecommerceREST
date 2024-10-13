@@ -168,6 +168,12 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 10,
+    'DEFAULT_THROTTLE_RATES': {
+        'phone_login_post': '3/minute',
+        'phone_login_put': '3/minute',
+        'set_password': '3/minute',
+        'login': '3/minute',
+    }
 }
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),

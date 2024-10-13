@@ -13,7 +13,7 @@ from rest_framework import status
 from django.core.cache import cache as redis
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, throttle_classes, action
-from throttling import OTPPostThrottle, OTPPutThrottle, SetPasswordThrottle, LoginThrottle
+from utils.throttling import OTPPostThrottle, OTPPutThrottle, SetPasswordThrottle, LoginThrottle
 
 
 class OTPRegisterView(APIView):

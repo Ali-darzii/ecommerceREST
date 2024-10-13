@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from auth_module.models import User, UserProfile
 from auth_module.tasks import send_message, user_login_signal, user_login_failed_signal, user_created_signal
-from utils.ErrorResponses import ErrorResponses
+from utils.Responses import ErrorResponses, NotAuthenticated
 from utils.utils import otp_code_generator, create_user_agent
 from django.conf import settings
 from auth_module.serializers import OTPRequestSerializer, SetPasswordSerializer
@@ -15,15 +15,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view
 
 
-class OTPRegisterAuthentication(APIView):
+class OTPRegisterView(APIView):
     """ Register """
 
-    # permission_classes = (NotAuthenticated,)
+    permission_classes = [NotAuthenticated]
 
     def post(self, request):
         """  Send OTP """
-        if request.user.is_authenticated:
-            return Response(data=ErrorResponses.Client_Must_Not_Be_Authenticated, status=status.HTTP_400_BAD_REQUEST)
         serializer = OTPRequestSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         phone_no = serializer.validated_data.get("phone_no")
@@ -52,8 +50,6 @@ class OTPRegisterAuthentication(APIView):
 
     def put(self, request):
         """ Check OTP and create_user or user(not active) """
-        if request.user.is_authenticated:
-            return Response(data=ErrorResponses.Client_Must_Not_Be_Authenticated, status=status.HTTP_400_BAD_REQUEST)
         serializer = OTPRequestSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         phone_no = serializer.validated_data.get('phone_no')
@@ -76,33 +72,40 @@ class OTPRegisterAuthentication(APIView):
             return Response(data={"data": "User created.", "user_id": user.id}, status=status.HTTP_201_CREATED)
 
 
-@api_view(['POST'])
-def set_password(request, pk):
-    """ for first time, SetPassword and login """
-    if request.user.is_authenticated:
-        return Response(data=ErrorResponses.Client_Must_Not_Be_Authenticated, status=status.HTTP_400_BAD_REQUEST)
-    serializer = SetPasswordSerializer(data=request.data, context={"request": request})
-    serializer.is_valid(raise_exception=True)
-    password = serializer.validated_data.get('password')
-    try:
-        user = User.objects.get(pk=pk)
-    except User.DoesNotExist:
-        return Response(data=ErrorResponses.OBJECT_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-    if user.is_active:
-        user_login_failed_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id))
-        return Response(data=ErrorResponses.WRONG_LOGIN_DATA, status=status.HTTP_400_BAD_REQUEST)
-    user.is_active = True
-    user.set_password(password)
-    user.last_login = timezone.now()
-    user.save()
-    user_login_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id,))
-    UserProfile.objects.create(user=user)
-    data = {
-        "access_token": str(AccessToken.for_user(user)),
-        "refresh_token": str(RefreshToken.for_user(user)),
-    }
+class UserLoginView(APIView):
+    permission_classes = [NotAuthenticated]
 
-    return Response(data=data, status=status.HTTP_200_OK)
+    def post(self, request, pk=None):
+        """ for first time, SetPassword and login """
+        if pk is None:
+            return Response(data={"detail": "Need pk parameter in url."}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = SetPasswordSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        password = serializer.validated_data.get('password')
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response(data=ErrorResponses.OBJECT_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        if user.is_active:
+            user_login_failed_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id))
+            return Response(data=ErrorResponses.WRONG_LOGIN_DATA, status=status.HTTP_400_BAD_REQUEST)
+        user.is_active = True
+        user.set_password(password)
+        user.last_login = timezone.now()
+        user.save()
+        user_login_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id,))
+        UserProfile.objects.create(user=user)
+        data = {
+            "access_token": str(AccessToken.for_user(user)),
+            "refresh_token": str(RefreshToken.for_user(user)),
+        }
+
+        return Response(data=data, status=status.HTTP_200_OK)
+
+    def put(self, request):
+        """ User Login  """
+        pass
 
 
 class UserLogoutView(APIView):

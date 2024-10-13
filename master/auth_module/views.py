@@ -12,7 +12,8 @@ from django.utils import timezone
 from rest_framework import status
 from django.core.cache import cache as redis
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, throttle_classes, action
+from throttling import OTPPostThrottle, OTPPutThrottle, SetPasswordThrottle, LoginThrottle
 
 
 class OTPRegisterView(APIView):
@@ -20,6 +21,7 @@ class OTPRegisterView(APIView):
 
     permission_classes = [NotAuthenticated]
 
+    @action(methods=["POST"], detail=True, throttle_classes=[OTPPostThrottle])
     def post(self, request):
         """  Send OTP """
         serializer = OTPSerializer(data=request.data, context={'request': request})
@@ -48,6 +50,7 @@ class OTPRegisterView(APIView):
 
         return Response(data={"detail": "Sent."}, status=status.HTTP_201_CREATED)
 
+    @action(methods=["PUT"], detail=True, throttle_classes=[OTPPutThrottle])
     def put(self, request):
         """ Check OTP and create_user or user(not active) """
         serializer = OTPSerializer(data=request.data, context={"request": request})
@@ -67,12 +70,12 @@ class OTPRegisterView(APIView):
 
         except User.DoesNotExist:
             user = User.objects.create(phone_no=phone_no, is_active=False)
-            # pass
             user_created_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id))
             return Response(data={"data": "User created.", "user_id": user.id}, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])
+@throttle_classes([SetPasswordThrottle])
 def set_password(request, pk=None):
     """ for first time, SetPassword and login """
 
@@ -105,9 +108,11 @@ def set_password(request, pk=None):
 
     return Response(data=data, status=status.HTTP_200_OK)
 
+
 # todo:need test
 class UserLoginView(APIView):
     permission_classes = [NotAuthenticated]
+    throttle_classes = [LoginThrottle]
 
     def post(self, request):
         """ User Login (phone_no) """
@@ -131,9 +136,6 @@ class UserLoginView(APIView):
         }
 
         return Response(data=data, status=status.HTTP_200_OK)
-
-
-
 
     def put(self, request):
         """ User Login (email) """

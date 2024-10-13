@@ -90,13 +90,13 @@ def set_password(request, pk):
     except User.DoesNotExist:
         return Response(data=ErrorResponses.OBJECT_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
     if user.is_active:
-        # user_logged_in_failed.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id))
+        user_login_failed_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id))
         return Response(data=ErrorResponses.WRONG_LOGIN_DATA, status=status.HTTP_400_BAD_REQUEST)
     user.is_active = True
     user.set_password(password)
     user.last_login = timezone.now()
     user.save()
-    # user_logged_in.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id,))
+    user_login_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id,))
     UserProfile.objects.create(user=user)
     data = {
         "access_token": str(AccessToken.for_user(user)),

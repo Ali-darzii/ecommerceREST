@@ -139,7 +139,26 @@ class UserLoginView(APIView):
 
     def put(self, request):
         """ User Login (email) """
-        pass
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data.get("email")
+        password = serializer.validated_data.get("password")
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(data=ErrorResponses.WRONG_LOGIN_DATA, status=status.HTTP_400_BAD_REQUEST)
+
+        if not user.is_active or not user.check_password(password) or not user.email_activate:
+            user_login_failed_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id))
+            return Response(data=ErrorResponses.WRONG_LOGIN_DATA, status=status.HTTP_400_BAD_REQUEST)
+
+        user_login_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id,))
+        data = {
+            "access_token": str(AccessToken.for_user(user)),
+            "refresh_token": str(RefreshToken.for_user(user)),
+        }
+
+        return Response(data=data, status=status.HTTP_200_OK)
 
 
 class UserLogoutView(APIView):

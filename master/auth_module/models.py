@@ -1,8 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models.signals import post_save
 from django.utils.translation import gettext_lazy as _
-from django.dispatch import receiver
 
 
 class User(AbstractUser):
@@ -30,6 +28,8 @@ class UserProfile(models.Model):
         verbose_name_plural = 'Users Profiles'
         db_table = 'UserProfile_DB'
 
+
+# user data analyze
 
 class UserLogins(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_logins')
@@ -70,12 +70,9 @@ class UserDevice(models.Model):
     os = models.CharField(max_length=100)
 
     @classmethod
-    def get_user_device(cls, request, user):
-        device_name = request.user_agent.device.family
-        is_phone = request.user_agent.is_mobile
-        browser = request.user_agent.browser.family
-        os = request.user_agent.os.family
-        return cls(device_name=device_name, is_phone=is_phone, browser=browser, os=os, user_logins=user.user_logins)
+    def get_user_device(cls, user_agent, user_logins_id):
+        return cls(device_name=user_agent["device_name"], is_phone=user_agent["is_phone"],
+                   browser=user_agent["browser"], os=user_agent["os"], user_logins_id=user_logins_id)
 
     def __str__(self):
         return str(self.user_logins.user.first_name) + '_device'

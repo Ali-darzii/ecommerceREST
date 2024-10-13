@@ -2,12 +2,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from auth_module.models import User, UserProfile
-from auth_module.tasks import send_message, user_logged_in
+from auth_module.tasks import send_message, user_login_signal, user_login_failed_signal, user_created_signal
 from utils.ErrorResponses import ErrorResponses
-from utils.utils import otp_code_generator
+from utils.utils import otp_code_generator, create_user_agent
 from django.conf import settings
 from auth_module.serializers import OTPRequestSerializer, SetPasswordSerializer
-from utils.utils import NotAuthenticated
+from utils.utils import get_client_ip
 from django.utils import timezone
 from rest_framework import status
 from django.core.cache import cache as redis
@@ -55,9 +55,7 @@ class OTPRegisterAuthentication(APIView):
         """ Check OTP and create_user or user(not active) """
         if request.user.is_authenticated:
             return Response(data=ErrorResponses.Client_Must_Not_Be_Authenticated, status=status.HTTP_400_BAD_REQUEST)
-        serializer = OTPRequestSerializer(request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
-        serializer = OTPRequestSerializer(data=request.data, context={'request': request})
+        serializer = OTPRequestSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         phone_no = serializer.validated_data.get('phone_no')
         tk = serializer.validated_data.get('tk')
@@ -67,30 +65,38 @@ class OTPRegisterAuthentication(APIView):
         if token is None or int(token) != int(tk):
             return Response(data=ErrorResponses.TOKEN_IS_EXPIRED_OR_INVALID, status=status.HTTP_400_BAD_REQUEST)
         try:
-            user = User.objects.get(phone_no=phone_no, is_active=False)
-            return Response(data={"data": "User is not active.", "user_id": user.id}, status=status.HTTP_200_OK)
+            user = User.objects.get(phone_no=phone_no)
+            if not user.is_active:
+                return Response(data={"data": "User is not active.", "user_id": user.id}, status=status.HTTP_200_OK)
+            return Response(data={ErrorResponses.WRONG_LOGIN_DATA})
+
         except User.DoesNotExist:
             user = User.objects.create(phone_no=phone_no, is_active=False)
+            # pass
+            user_created_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id))
             return Response(data={"data": "User created.", "user_id": user.id}, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])
-def set_password(request):
-    """ SetPassword and login """
+def set_password(request, pk):
+    """ for first time, SetPassword and login """
     if request.user.is_authenticated:
         return Response(data=ErrorResponses.Client_Must_Not_Be_Authenticated, status=status.HTTP_400_BAD_REQUEST)
-    serializer = SetPasswordSerializer(request.data)
+    serializer = SetPasswordSerializer(data=request.data, context={"request": request})
     serializer.is_valid(raise_exception=True)
-    phone_no = serializer.validated_data.get('phone_no')
     password = serializer.validated_data.get('password')
     try:
-        user = User.objects.get(phone_no=phone_no, is_active=False)
+        user = User.objects.get(pk=pk)
     except User.DoesNotExist:
         return Response(data=ErrorResponses.OBJECT_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+    if user.is_active:
+        # user_logged_in_failed.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id))
+        return Response(data=ErrorResponses.WRONG_LOGIN_DATA, status=status.HTTP_400_BAD_REQUEST)
+    user.is_active = True
     user.set_password(password)
     user.last_login = timezone.now()
     user.save()
-    user_logged_in(request, user).apply_async(priority=8)
+    # user_logged_in.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id,))
     UserProfile.objects.create(user=user)
     data = {
         "access_token": str(AccessToken.for_user(user)),

@@ -3,9 +3,7 @@ from celery import shared_task
 from django.conf import settings
 import requests
 from rest_framework import status
-
 from auth_module.models import UserLogins, UserIP, UserDevice
-from utils.utils import get_client_ip
 
 
 @shared_task(queue="tasks")
@@ -24,45 +22,42 @@ def send_message(phone_no, token):
         if request.status_code == status.HTTP_200_OK:
             if request_response["success"] is True:
                 return {"OTP": True}
-        return {"OTP": False}
+    return {"OTP": False}
 
 
 @shared_task(queue="tasks")
-def user_created(request, user):
-    user_login = UserLogins.objects.create(user=user, no_logins=1)
-    UserIP.objects.create(user_login=user_login, ip=get_client_ip(request))
-    device = UserDevice.get_user_device(request, user)
+def user_created_signal(user_agent, user_ip, user_id):
+    user_logins = UserLogins.objects.create(user_id=user_id)
+    UserIP.objects.create(user_logins=user_logins, ip=user_ip)
+    device = UserDevice.get_user_device(user_agent, user_logins.id)
     device.save()
     return {"user_created": True}
 
 
 @shared_task(queue="tasks")
-def user_logged_in(request, user):
+def user_login_signal(user_agent, user_ip, user_id):
     try:
-        user_login = UserLogins.objects.get(user=user)
-        user_login.no_logins += 1
-        user_login.save()
-        user_login.ips.ip = get_client_ip(request)
-        user_login.ips.save()
-        user_login.devices.get_user_device(request, user)
-        user_login.devices.save()
+        user_logins = UserLogins.objects.get(user_id=user_id)
+        user_logins.no_logins += 1
+        user_logins.save()
+        UserIP.objects.create(user_logins=user_logins, ip=user_ip)
+        devices = UserDevice.get_user_device(user_agent, user_logins.id)
+        devices.save()
         return {"user_logged_in": True}
     except UserLogins.DoesNotExist:
         return {"user_logged_in": False}
 
 
 @shared_task(queue="tasks")
-def user_logged_in_failed(request, user):
+def user_login_failed_signal(user_agent, user_ip, user_id):
     try:
-        user_login = UserLogins.objects.get(user=user)
-        user_login.failed_attempts += 1
-        user_login.save()
-        user_login.ips.ip = get_client_ip(request)
-        user_login.ips.failed = True
-        user_login.ips.save()
-        user_login.devices.get_user_device(request, user)
-        user_login.devices.save()
+        user_logins = UserLogins.objects.get(user_id=user_id)
+        user_logins.failed_attempts += 1
+        user_logins.save()
+        UserIP.objects.create(user_logins=user_logins, ip=user_ip, failed=True)
+        device = UserDevice.get_user_device(user_agent, user_logins.id)
+        device.save()
+
         return {"user_logged_in_failed": True}
     except UserLogins.DoesNotExist:
         return {"user_logged_in_failed": False}
-

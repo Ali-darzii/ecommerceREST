@@ -1,8 +1,6 @@
 import random
 from rest_framework.permissions import BasePermission
-import requests
 from django.conf import settings
-from rest_framework import status
 
 
 def get_client_ip(request):
@@ -34,5 +32,10 @@ def get_sms_text_message(token):
     return phone_text_message.replace("NUMBER", token)
 
 
-
-
+def create_user_agent(request):
+    return {
+        "device_name": request.user_agent.device.family,
+        "is_phone": request.user_agent.is_mobile,
+        "browser": request.user_agent.browser.family,
+        "os": request.user_agent.os.family
+    }

@@ -7,7 +7,7 @@ from utils.utils import create_user_agent, get_client_ip
 from .tasks import user_login_failed_signal
 
 
-class OTPRequestSerializer(serializers.Serializer):
+class OTPSerializer(serializers.Serializer):
     phone_no = serializers.CharField(required=True, max_length=11)
     tk = serializers.CharField(required=False)
 
@@ -31,7 +31,7 @@ class OTPRequestSerializer(serializers.Serializer):
         if self.context['request'].method == "PUT":
             if attrs.get("tk") is None:
                 raise serializers.ValidationError(ErrorResponses.MISSING_PARAMS)
-        attrs = super(OTPRequestSerializer, self).validate(attrs)
+        attrs = super(OTPSerializer, self).validate(attrs)
         return attrs
 
 
@@ -51,3 +51,4 @@ class SetPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("Passwords don't match.")
         attrs = super(SetPasswordSerializer, self).validate(attrs)
         return attrs
+

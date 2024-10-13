@@ -8,10 +8,11 @@ class ErrorResponses:
     MISSING_PARAMS = {'detail': 'MISSING_PARAMS', 'error_code': 4}
     TOKEN_IS_EXPIRED_OR_INVALID = {'detail': 'TOKEN_IS_EXPIRED_OR_INVALID', 'error_code': 5}
 
+
 class NotAuthenticated(BasePermission):
     message = "Client could not be authenticated."
 
     def has_permission(self, request, view):
-        if request.user.is_authenticated:
+        if request.headers.get("Authorization") is not None:
             return False
         return True

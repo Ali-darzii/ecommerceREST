@@ -6,7 +6,7 @@ from auth_module.tasks import send_message, user_login_signal, user_login_failed
 from utils.Responses import ErrorResponses, NotAuthenticated
 from utils.utils import otp_code_generator, create_user_agent
 from django.conf import settings
-from auth_module.serializers import OTPRequestSerializer, SetPasswordSerializer
+from auth_module.serializers import OTPSerializer, SetPasswordSerializer
 from utils.utils import get_client_ip
 from django.utils import timezone
 from rest_framework import status
@@ -22,7 +22,7 @@ class OTPRegisterView(APIView):
 
     def post(self, request):
         """  Send OTP """
-        serializer = OTPRequestSerializer(data=request.data, context={'request': request})
+        serializer = OTPSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         phone_no = serializer.validated_data.get("phone_no")
         otp_exp = settings.OTP_TIME_EXPIRE_DATA
@@ -35,7 +35,7 @@ class OTPRegisterView(APIView):
 
             redis.set(f'{phone_no}_otp', token)
             redis.expire(f'{phone_no}_otp', otp_exp)
-            return Response(data={'detail': 'Sent'}, status=status.HTTP_201_CREATED)
+            return Response(data={'detail': 'Sent.'}, status=status.HTTP_201_CREATED)
 
         last_code = redis.get(f"{phone_no}_otp")
         if last_code is None:
@@ -46,11 +46,11 @@ class OTPRegisterView(APIView):
 
         send_message.apply_async(args=(phone_no, token))
 
-        return Response(data={"detail": "Sent"}, status=status.HTTP_201_CREATED)
+        return Response(data={"detail": "Sent."}, status=status.HTTP_201_CREATED)
 
     def put(self, request):
         """ Check OTP and create_user or user(not active) """
-        serializer = OTPRequestSerializer(data=request.data, context={"request": request})
+        serializer = OTPSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         phone_no = serializer.validated_data.get('phone_no')
         tk = serializer.validated_data.get('tk')
@@ -72,39 +72,49 @@ class OTPRegisterView(APIView):
             return Response(data={"data": "User created.", "user_id": user.id}, status=status.HTTP_201_CREATED)
 
 
+@api_view(['POST'])
+def set_password(request, pk=None):
+    """ for first time, SetPassword and login """
+
+    if request.headers.get("Authorization") is not None:
+        return Response(data={"detail": "Client could not be authenticated."}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if pk is None:
+        return Response(data={"detail": "Need pk parameter in url."}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = SetPasswordSerializer(data=request.data, context={"request": request})
+    serializer.is_valid(raise_exception=True)
+    password = serializer.validated_data.get('password')
+    try:
+        user = User.objects.get(pk=pk)
+    except User.DoesNotExist:
+        return Response(data=ErrorResponses.OBJECT_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+    if user.is_active:
+        user_login_failed_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id))
+        return Response(data=ErrorResponses.WRONG_LOGIN_DATA, status=status.HTTP_400_BAD_REQUEST)
+    user.is_active = True
+    user.set_password(password)
+    user.last_login = timezone.now()
+    user.save()
+    user_login_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id,))
+    UserProfile.objects.create(user=user)
+    data = {
+        "access_token": str(AccessToken.for_user(user)),
+        "refresh_token": str(RefreshToken.for_user(user)),
+    }
+
+    return Response(data=data, status=status.HTTP_200_OK)
+
+
 class UserLoginView(APIView):
     permission_classes = [NotAuthenticated]
 
-    def post(self, request, pk=None):
-        """ for first time, SetPassword and login """
-        if pk is None:
-            return Response(data={"detail": "Need pk parameter in url."}, status=status.HTTP_400_BAD_REQUEST)
-
-        serializer = SetPasswordSerializer(data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
-        password = serializer.validated_data.get('password')
-        try:
-            user = User.objects.get(pk=pk)
-        except User.DoesNotExist:
-            return Response(data=ErrorResponses.OBJECT_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        if user.is_active:
-            user_login_failed_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id))
-            return Response(data=ErrorResponses.WRONG_LOGIN_DATA, status=status.HTTP_400_BAD_REQUEST)
-        user.is_active = True
-        user.set_password(password)
-        user.last_login = timezone.now()
-        user.save()
-        user_login_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id,))
-        UserProfile.objects.create(user=user)
-        data = {
-            "access_token": str(AccessToken.for_user(user)),
-            "refresh_token": str(RefreshToken.for_user(user)),
-        }
-
-        return Response(data=data, status=status.HTTP_200_OK)
+    def post(self, request):
+        """ User Login (phone_no) """
+        pass
 
     def put(self, request):
-        """ User Login  """
+        """ User Login (email) """
         pass
 
 

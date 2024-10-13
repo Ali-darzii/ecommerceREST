@@ -15,7 +15,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view
 
 
-# todo:all api need test
 class OTPRegisterAuthentication(APIView):
     """ Register """
 
@@ -121,5 +120,5 @@ class UserLogoutView(APIView):
 
     def delete(self, request):
         """ user remove """
-        request.user.delte()
+        request.user.delete()
         return Response(data={"data": "user deleted successfully"}, status=status.HTTP_204_NO_CONTENT)

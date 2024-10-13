@@ -6,7 +6,7 @@ from auth_module.tasks import send_message, user_login_signal, user_login_failed
 from utils.Responses import ErrorResponses, NotAuthenticated
 from utils.utils import otp_code_generator, create_user_agent
 from django.conf import settings
-from auth_module.serializers import OTPSerializer, SetPasswordSerializer
+from auth_module.serializers import OTPSerializer, SetPasswordSerializer, LoginSerializer
 from utils.utils import get_client_ip
 from django.utils import timezone
 from rest_framework import status
@@ -105,13 +105,35 @@ def set_password(request, pk=None):
 
     return Response(data=data, status=status.HTTP_200_OK)
 
-
+# todo:need test
 class UserLoginView(APIView):
     permission_classes = [NotAuthenticated]
 
     def post(self, request):
         """ User Login (phone_no) """
-        pass
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        phone_no = serializer.validated_data.get("phone_no")
+        password = serializer.validated_data.get("password")
+        try:
+            user = User.objects.get(phone_no=phone_no)
+        except User.DoesNotExist:
+            return Response(data=ErrorResponses.WRONG_LOGIN_DATA, status=status.HTTP_400_BAD_REQUEST)
+
+        if not user.is_active or not user.check_password(password):
+            user_login_failed_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id))
+            return Response(data=ErrorResponses.WRONG_LOGIN_DATA, status=status.HTTP_400_BAD_REQUEST)
+
+        user_login_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id,))
+        data = {
+            "access_token": str(AccessToken.for_user(user)),
+            "refresh_token": str(RefreshToken.for_user(user)),
+        }
+
+        return Response(data=data, status=status.HTTP_200_OK)
+
+
+
 
     def put(self, request):
         """ User Login (email) """

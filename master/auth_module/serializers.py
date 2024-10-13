@@ -31,7 +31,7 @@ class OTPSerializer(serializers.Serializer):
         if self.context['request'].method == "PUT":
             if attrs.get("tk") is None:
                 raise serializers.ValidationError(ErrorResponses.MISSING_PARAMS)
-        attrs = super(OTPSerializer, self).validate(attrs)
+        attrs = super(self, OTPSerializer).validate(attrs)
         return attrs
 
 
@@ -49,6 +49,22 @@ class SetPasswordSerializer(serializers.Serializer):
     def validate(self, attrs):
         if attrs.get("password") != attrs.get("confirm_password"):
             raise serializers.ValidationError("Passwords don't match.")
-        attrs = super(SetPasswordSerializer, self).validate(attrs)
+        attrs = super(self, SetPasswordSerializer).validate(attrs)
         return attrs
 
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=255, required=False)
+    phone_no = serializers.CharField(max_length=11, required=False)
+    password = serializers.CharField(max_length=128, required=True)
+
+    def validate(self, attrs):
+        if self.context["request"].method == "POST":
+            if attrs.get("phone_no") is None:
+                serializers.ValidationError(ErrorResponses.MISSING_PARAMS)
+
+        if self.context["request"].method == "PUT":
+            if attrs.get("email") is None:
+                serializers.ValidationError(ErrorResponses.MISSING_PARAMS)
+        attrs = super(self, LoginSerializer).validate(attrs)
+        return attrs

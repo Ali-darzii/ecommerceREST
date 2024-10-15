@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     # External
     'django_user_agents',
     'rest_framework',
+    # 'rest_framework.throttling.ScopedRateThrottle',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     # Internal
@@ -169,10 +170,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 10,
     'DEFAULT_THROTTLE_RATES': {
-        'phone_login_post': '3/minute',
-        'phone_login_put': '3/minute',
-        'set_password': '3/minute',
-        'login': '3/minute',
+        # (<allowed number of requests>, <period of time>)
+        'phone_otp_post': '3/minutes',
+        'phone_otp_put': '10/minute',
+        'set_password': '10/minute',
+        'phone_login': '10/minute',
+        'email_login': '10/minute',
     }
 }
 SIMPLE_JWT = {

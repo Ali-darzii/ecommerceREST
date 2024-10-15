@@ -1,5 +1,4 @@
 import random
-from rest_framework.permissions import BasePermission
 from django.conf import settings
 
 
@@ -10,17 +9,6 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
-
-
-class NotAuthenticated(BasePermission):
-    """
-    Allows access only to not authenticated clients.
-    """
-
-    def has_permission(self, request, view):
-        if request.user.is_authenticated:
-            return False
-        return True
 
 
 def otp_code_generator():

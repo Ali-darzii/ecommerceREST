@@ -13,7 +13,8 @@ from rest_framework import status
 from django.core.cache import cache as redis
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, throttle_classes, action
-from utils.throttling import OTPPostThrottle, OTPPutThrottle, SetPasswordThrottle, LoginThrottle
+from utils.throttling import OTPPostThrottle, OTPPutThrottle, SetPasswordThrottle, PhoneLoginThrottle, \
+    EmailLoginThrottle
 
 
 class OTPRegisterView(APIView):
@@ -21,15 +22,15 @@ class OTPRegisterView(APIView):
 
     permission_classes = [NotAuthenticated]
 
-    @action(methods=["POST"], detail=True, throttle_classes=[OTPPostThrottle])
     def post(self, request):
+
         """  Send OTP """
+        print(self.throttle_classes)
         serializer = OTPSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         phone_no = serializer.validated_data.get("phone_no")
         otp_exp = settings.OTP_TIME_EXPIRE_DATA
         token = otp_code_generator()
-
         # Handle test user login
         if phone_no.startswith("0950"):
             # This is test user
@@ -50,9 +51,9 @@ class OTPRegisterView(APIView):
 
         return Response(data={"detail": "Sent."}, status=status.HTTP_201_CREATED)
 
-    @action(methods=["PUT"], detail=True, throttle_classes=[OTPPutThrottle])
     def put(self, request):
         """ Check OTP and create_user or user(not active) """
+        print(self.throttle_classes)
         serializer = OTPSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         phone_no = serializer.validated_data.get('phone_no')
@@ -72,6 +73,13 @@ class OTPRegisterView(APIView):
             user = User.objects.create(phone_no=phone_no, is_active=False)
             user_created_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id))
             return Response(data={"data": "User created.", "user_id": user.id}, status=status.HTTP_201_CREATED)
+
+    def get_throttles(self):
+        if self.request.method == 'POST':
+            self.throttle_classes = [OTPPostThrottle]
+        elif self.request.method == 'PUT':
+            self.throttle_classes = [OTPPutThrottle]
+        return super(OTPRegisterView, self).get_throttles()
 
 
 @api_view(['POST'])
@@ -112,11 +120,10 @@ def set_password(request, pk=None):
 # todo:need test
 class UserLoginView(APIView):
     permission_classes = [NotAuthenticated]
-    throttle_classes = [LoginThrottle]
 
     def post(self, request):
         """ User Login (phone_no) """
-        serializer = LoginSerializer(data=request.data)
+        serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         phone_no = serializer.validated_data.get("phone_no")
         password = serializer.validated_data.get("password")
@@ -137,9 +144,10 @@ class UserLoginView(APIView):
 
         return Response(data=data, status=status.HTTP_200_OK)
 
+    # todo:need email OTP
     def put(self, request):
         """ User Login (email) """
-        serializer = LoginSerializer(data=request.data)
+        serializer = LoginSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data.get("email")
         password = serializer.validated_data.get("password")
@@ -159,6 +167,13 @@ class UserLoginView(APIView):
         }
 
         return Response(data=data, status=status.HTTP_200_OK)
+
+    def get_throttles(self):
+        if self.request.method == 'POST':
+            self.throttle_classes = [PhoneLoginThrottle]
+        elif self.request.method == 'PUT':
+            self.throttle_classes = [EmailLoginThrottle]
+        return super(UserLoginView, self).get_throttles()
 
 
 class UserLogoutView(APIView):

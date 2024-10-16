@@ -35,3 +35,11 @@ class PhoneLoginThrottle(BaseThrottle):
 
 class EmailLoginThrottle(BaseThrottle):
     scope = 'Email_login'
+
+
+class EmailSendCodeThrottle(BaseThrottle):
+    scope = 'email_send_code'
+
+
+class EmailCheckCodeThrottle(BaseThrottle):
+    scope = 'email_check_code'

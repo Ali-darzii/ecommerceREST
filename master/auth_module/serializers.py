@@ -7,7 +7,7 @@ from utils.utils import create_user_agent, get_client_ip
 from .tasks import user_login_failed_signal
 
 
-class OTPSerializer(serializers.Serializer):
+class PhoneOTPSerializer(serializers.Serializer):
     phone_no = serializers.CharField(required=True, max_length=11)
     tk = serializers.CharField(required=False)
 
@@ -31,7 +31,7 @@ class OTPSerializer(serializers.Serializer):
         if self.context['request'].method == "PUT":
             if attrs.get("tk") is None:
                 raise serializers.ValidationError(ErrorResponses.MISSING_PARAMS)
-        attrs = super(OTPSerializer, self).validate(attrs)
+        attrs = super(PhoneOTPSerializer, self).validate(attrs)
         return attrs
 
 
@@ -68,3 +68,17 @@ class LoginSerializer(serializers.Serializer):
                 serializers.ValidationError(ErrorResponses.MISSING_PARAMS)
         attrs = super(LoginSerializer, self).validate(attrs)
         return attrs
+
+
+class EmailSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=225)
+
+    def email_validate(self, email):
+        request = self.context["request"]
+        if request.user.email != email:
+            serializers.ValidationError(ErrorResponses.MISSING_PARAMS)
+        if request.user.email_activate:
+            serializers.ValidationError("Email already activate.")
+
+        return email
+

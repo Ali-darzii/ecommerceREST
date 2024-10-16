@@ -2,11 +2,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from auth_module.models import User, UserProfile
-from auth_module.tasks import send_message, user_login_signal, user_login_failed_signal, user_created_signal
+from auth_module.tasks import send_message, user_login_signal, user_login_failed_signal, user_created_signal, send_email
 from utils.Responses import ErrorResponses, NotAuthenticated
 from utils.utils import otp_code_generator, create_user_agent
 from django.conf import settings
-from auth_module.serializers import OTPSerializer, SetPasswordSerializer, LoginSerializer
+from auth_module.serializers import PhoneOTPSerializer, SetPasswordSerializer, LoginSerializer, EmailSerializer
 from utils.utils import get_client_ip
 from django.utils import timezone
 from rest_framework import status
@@ -14,10 +14,11 @@ from django.core.cache import cache as redis
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, throttle_classes, action
 from utils.throttling import OTPPostThrottle, OTPPutThrottle, SetPasswordThrottle, PhoneLoginThrottle, \
-    EmailLoginThrottle
+    EmailLoginThrottle, EmailSendCodeThrottle, EmailCheckCodeThrottle
+from django.utils.crypto import get_random_string
 
 
-class OTPRegisterView(APIView):
+class PhoneOTPRegisterView(APIView):
     """ Register """
 
     permission_classes = [NotAuthenticated]
@@ -25,12 +26,10 @@ class OTPRegisterView(APIView):
     def post(self, request):
 
         """  Send OTP """
-        print(self.throttle_classes)
-        serializer = OTPSerializer(data=request.data, context={'request': request})
+        serializer = PhoneOTPSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         phone_no = serializer.validated_data.get("phone_no")
         otp_exp = settings.OTP_TIME_EXPIRE_DATA
-        token = otp_code_generator()
         # Handle test user login
         if phone_no.startswith("0950"):
             # This is test user
@@ -42,6 +41,7 @@ class OTPRegisterView(APIView):
 
         last_code = redis.get(f"{phone_no}_otp")
         if last_code is None:
+            token = otp_code_generator()
             redis.set(f'{phone_no}_otp', token)
             redis.expire(f'{phone_no}_otp', otp_exp)
         else:
@@ -54,7 +54,7 @@ class OTPRegisterView(APIView):
     def put(self, request):
         """ Check OTP and create_user or user(not active) """
         print(self.throttle_classes)
-        serializer = OTPSerializer(data=request.data, context={"request": request})
+        serializer = PhoneOTPSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         phone_no = serializer.validated_data.get('phone_no')
         tk = serializer.validated_data.get('tk')
@@ -79,7 +79,7 @@ class OTPRegisterView(APIView):
             self.throttle_classes = [OTPPostThrottle]
         elif self.request.method == 'PUT':
             self.throttle_classes = [OTPPutThrottle]
-        return super(OTPRegisterView, self).get_throttles()
+        return super(PhoneOTPRegisterView, self).get_throttles()
 
 
 @api_view(['POST'])
@@ -91,7 +91,7 @@ def set_password(request, pk=None):
         return Response(data={"detail": "Client could not be authenticated."}, status=status.HTTP_401_UNAUTHORIZED)
 
     if pk is None:
-        return Response(data={"detail": "Need pk parameter in url."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(ErrorResponses.MISSING_PARAMS, status=status.HTTP_400_BAD_REQUEST)
 
     serializer = SetPasswordSerializer(data=request.data, context={"request": request})
     serializer.is_valid(raise_exception=True)
@@ -117,7 +117,6 @@ def set_password(request, pk=None):
     return Response(data=data, status=status.HTTP_200_OK)
 
 
-# todo:need test
 class UserLoginView(APIView):
     permission_classes = [NotAuthenticated]
 
@@ -144,7 +143,7 @@ class UserLoginView(APIView):
 
         return Response(data=data, status=status.HTTP_200_OK)
 
-    # todo:need email OTP
+
     def put(self, request):
         """ User Login (email) """
         serializer = LoginSerializer(data=request.data, context={"request": request})
@@ -193,3 +192,47 @@ class UserLogoutView(APIView):
         """ user remove """
         request.user.delete()
         return Response(data={"data": "user deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+
+# todo:need test
+class EmailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, code=None):
+        """ Send Email Activation code """
+        if code is not None:
+            return Response(ErrorResponses.BAD_FORMAT, status=status.HTTP_400_BAD_REQUEST)
+        serializer = EmailSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data.get("email")
+        code_expire = settings.EMAIL_CODE_TIME_OUT
+        active_code = redis.get(f"{email}_code")
+        if active_code is None:
+            code = get_random_string(72)
+            redis.set(f"{email}_code", code)
+            redis.expire(f"{email}_code", code_expire)
+        else:
+            return Response(data={'detail': "not sent, please wait."}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        url = f"you need to click {settings.ALLOWED_HOSTS[0]}/api/v1/auth/email_code/{code} to activate your email."
+        send_email.aplly_async(args=(email, "Ecommerce Email Verification", url))
+
+    def get(self, request, code=None):
+        """ Check Email Activation code """
+        if code is None:
+            return Response(ErrorResponses.MISSING_PARAMS, status=status.HTTP_400_BAD_REQUEST)
+        serializer = EmailSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data.get("email")
+        activate_code = redis.get(f"{email}_code")
+        if activate_code is None or activate_code != code:
+            return Response(data=ErrorResponses.CODE_IS_EXPIRED_OR_INVALID, status=status.HTTP_400_BAD_REQUEST)
+        request.user.email_activate = True
+        return Response(data={"detail": "Email activated."}, status=status.HTTP_200_OK)
+
+    def get_throttles(self):
+        if self.request.method == "POST":
+            self.throttle_classes = EmailSendCodeThrottle
+        if self.request.method == "GET":
+            self.throttle_classes = EmailCheckCodeThrottle
+        return super(EmailView, self).get_throttles()
+

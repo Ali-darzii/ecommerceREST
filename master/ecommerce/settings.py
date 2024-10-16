@@ -25,7 +25,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-n+-f*)bup8z_cnebwv5w6
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', True)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 # Application definition
 
@@ -176,6 +176,8 @@ REST_FRAMEWORK = {
         'set_password': '10/minute',
         'phone_login': '10/minute',
         'email_login': '10/minute',
+        'email_send_code': '3/minute',
+        'email_check_code': '10/minute',
     }
 }
 SIMPLE_JWT = {
@@ -191,6 +193,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'ali.darrzi.1382@gmail.com'
 EMAIL_HOST_PASSWORD = 'pmmmvkfijdjbgrni'
 EMAIL_PORT = 587
+EMAIL_CODE_TIME_OUT = 180  # 3min
 
 # Celery configs
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER', 'amqp://guest:guest@rabbitmq:5672/')

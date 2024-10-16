@@ -30,7 +30,6 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 # Application definition
 
 INSTALLED_APPS = [
-    'auth_module',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,11 +39,11 @@ INSTALLED_APPS = [
     # External
     'django_user_agents',
     'rest_framework',
-    # 'rest_framework.throttling.ScopedRateThrottle',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     # Internal
-
+    'auth_module',
+    'product_module',
 ]
 
 MIDDLEWARE = [

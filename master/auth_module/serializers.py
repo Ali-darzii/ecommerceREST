@@ -1,7 +1,7 @@
 import re
 
 from rest_framework import serializers
-from auth_module.models import User
+from auth_module.models import User, UserProfile
 from utils.Responses import ErrorResponses
 from utils.utils import create_user_agent, get_client_ip
 from .tasks import user_login_failed_signal
@@ -82,3 +82,8 @@ class EmailSerializer(serializers.Serializer):
 
         return email
 
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = "__all__"

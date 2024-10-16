@@ -6,7 +6,8 @@ from auth_module.tasks import send_message, user_login_signal, user_login_failed
 from utils.Responses import ErrorResponses, NotAuthenticated
 from utils.utils import otp_code_generator, create_user_agent
 from django.conf import settings
-from auth_module.serializers import PhoneOTPSerializer, SetPasswordSerializer, LoginSerializer, EmailSerializer
+from auth_module.serializers import PhoneOTPSerializer, SetPasswordSerializer, LoginSerializer, EmailSerializer, \
+    UserProfileSerializer
 from utils.utils import get_client_ip
 from django.utils import timezone
 from rest_framework import status
@@ -16,6 +17,8 @@ from rest_framework.decorators import api_view, throttle_classes, action
 from utils.throttling import OTPPostThrottle, OTPPutThrottle, SetPasswordThrottle, PhoneLoginThrottle, \
     EmailLoginThrottle, EmailSendCodeThrottle, EmailCheckCodeThrottle
 from django.utils.crypto import get_random_string
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.serializers import ValidationError
 
 
 class PhoneOTPRegisterView(APIView):
@@ -143,7 +146,6 @@ class UserLoginView(APIView):
 
         return Response(data=data, status=status.HTTP_200_OK)
 
-
     def put(self, request):
         """ User Login (email) """
         serializer = LoginSerializer(data=request.data, context={"request": request})
@@ -236,3 +238,20 @@ class EmailView(APIView):
             self.throttle_classes = EmailCheckCodeThrottle
         return super(EmailView, self).get_throttles()
 
+
+class UserProfileViewSet(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserProfileSerializer
+    queryset = UserProfile.objects.all()
+    lookup_field = 'user_id'
+
+    def perform_create(self, serializer):
+        queryset = UserProfile.objects.filter(user=self.request.user)
+        if queryset.exists():
+            raise ValidationError('You already have a profile.')
+        serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        if serializer.instance.user != self.request.user:
+            raise ValidationError("You cannot update another user's profile.")
+        serializer.save(user=self.request.user)

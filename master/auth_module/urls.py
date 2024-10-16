@@ -1,5 +1,10 @@
 from django.urls import path
 from . import views
+from rest_framework import routers
+
+router = routers.DefaultRouter()
+
+router.register(r'profile', views.UserProfileViewSet, basename='projects')
 
 urlpatterns = [
     path("auth/otp/", views.PhoneOTPRegisterView.as_view(), name="otp"),
@@ -9,4 +14,4 @@ urlpatterns = [
     path("auth/send_mail/", views.EmailView.as_view(), name="send_mail"),
     path("auth/send_mail/<str:code>/", views.EmailView.as_view(), name="send_mail_get"),
 
-]
+] + router.urls

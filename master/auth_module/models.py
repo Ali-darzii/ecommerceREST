@@ -16,7 +16,7 @@ class User(AbstractUser):
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_profiles')
-    avatar = models.ImageField(upload_to='../images/avatar', null=True)
+    avatar = models.ImageField(upload_to='images/avatar', null=True)
     address = models.TextField(null=True)
     city = models.CharField(max_length=100, null=True)
     postal_code = models.IntegerField(null=True)

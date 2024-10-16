@@ -9,7 +9,6 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-
 from pathlib import Path
 import os
 from datetime import timedelta
@@ -26,11 +25,12 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-n+-f*)bup8z_cnebwv5w6
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', True)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 # Application definition
 
 INSTALLED_APPS = [
+    'auth_module',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -38,10 +38,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # External
+    'django_user_agents',
     'rest_framework',
+    # 'rest_framework.throttling.ScopedRateThrottle',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     # Internal
+
 ]
 
 MIDDLEWARE = [
@@ -52,9 +55,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_user_agents.middleware.UserAgentMiddleware',
 ]
 
-ROOT_URLCONF = 'Auth.urls'
+ROOT_URLCONF = 'ecommerce.urls'
 
 TEMPLATES = [
     {
@@ -73,8 +77,19 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'Auth.wsgi.application'
+WSGI_APPLICATION = 'ecommerce.wsgi.application'
+AUTH_USER_MODEL = 'auth_module.User'
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_USERNAME_REQUIRED = False
 
+# in Redis
+OTP_TIME_EXPIRE_DATA = 60
+# sms webservice
+PHONE_TEXT_MESSAGE = "رمز ورود شما در سایت ایکامرس NUMBER می‌باشد."
+
+SMS_SERVICE_DOMAIN = "https://api.limosms.com/api/sendpatternmessage"
+SMS_SERVICE_NUMBER = "10000000002027"
+SMS_SERVICE_API_KEY = "89296788-e836-4353-bc35-23cd7de133df"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -138,7 +153,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 # todo: need AWS
-MEDIA_ROOT = BASE_DIR / 'uploads'
+MEDIA_ROOT = BASE_DIR / '/uploads'
 MEDIA_URL = '/medias/'
 
 # Default primary key field type
@@ -154,10 +169,21 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 10,
+    'DEFAULT_THROTTLE_RATES': {
+        # (<allowed number of requests>, <period of time>)
+        'phone_otp_post': '3/minutes',
+        'phone_otp_put': '10/minute',
+        'set_password': '10/minute',
+        'phone_login': '10/minute',
+        'email_login': '10/minute',
+        'email_send_code': '3/minute',
+        'email_check_code': '10/minute',
+    }
 }
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=3),
+    'UPDATE_LAST_LOGIN': True,
 }
 
 # Email Configs
@@ -167,3 +193,9 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'ali.darrzi.1382@gmail.com'
 EMAIL_HOST_PASSWORD = 'pmmmvkfijdjbgrni'
 EMAIL_PORT = 587
+EMAIL_CODE_TIME_OUT = 180  # 3min
+
+# Celery configs
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER', 'amqp://guest:guest@rabbitmq:5672/')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_BACKEND',
+                                       f"redis://{os.environ.get('RedisHost', 'redis')}:{os.environ.get('RedisPort', '6379')}/{os.environ.get('RedisDB')}", )

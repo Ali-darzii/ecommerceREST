@@ -15,7 +15,7 @@ class ProductBrandSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ProductImageSerializer(serializers.ModelSerializer):
+class ProductGallerySerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductGallery
         fields = '__all__'
@@ -27,3 +27,4 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     category = ProductCategorySerializer()
+    product_gallery = ProductGallerySerializer()

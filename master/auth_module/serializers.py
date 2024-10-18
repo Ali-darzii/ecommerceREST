@@ -84,6 +84,8 @@ class EmailSerializer(serializers.Serializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(required=False)
+
     class Meta:
         model = UserProfile
-        fields = "__all__"
+        fields = ['avatar', 'address', 'city', 'postal_code']

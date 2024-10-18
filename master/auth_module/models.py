@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 
 class User(AbstractUser):
     username = None
-    phone_no = models.CharField(_("phone number"), unique=True, max_length=11)
+    phone_no = models.CharField(_("phone number"), unique=True, max_length=11, db_index=True)
     email_activate = models.BooleanField(default=False)
     USERNAME_FIELD = "phone_no"
     REQUIRED_FIELDS = []
@@ -13,10 +13,13 @@ class User(AbstractUser):
     def __str__(self):
         return self.phone_no
 
-
+    class Meta:
+        verbose_name = "User"
+        verbose_name_plural = "Users"
+        db_table = "User_DB"
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_profiles')
-    avatar = models.ImageField(upload_to='../images/avatar', null=True)
+    avatar = models.ImageField(upload_to='images/avatar', null=True)
     address = models.TextField(null=True)
     city = models.CharField(max_length=100, null=True)
     postal_code = models.IntegerField(null=True)

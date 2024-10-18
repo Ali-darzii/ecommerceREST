@@ -196,7 +196,6 @@ class UserLogoutView(APIView):
         return Response(data={"data": "user deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
 
-# todo:need test
 class EmailView(APIView):
     permission_classes = [IsAuthenticated]
 

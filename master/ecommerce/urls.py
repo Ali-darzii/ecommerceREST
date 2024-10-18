@@ -18,10 +18,15 @@ from django.contrib import admin
 from django.urls import path, include
 from auth_module.jwt_custom_view import CustomTokenObtainPairView
 from rest_framework_simplejwt.views import TokenRefreshView
+from django.conf.urls.static import static
+from django.conf import settings
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include("auth_module.urls")),
+    path('api/v1/', include("product_module.urls")),
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
 ]
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

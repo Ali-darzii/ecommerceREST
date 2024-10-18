@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     # Internal
     'auth_module',
     'product_module',
+    'orders_module',
 ]
 
 MIDDLEWARE = [

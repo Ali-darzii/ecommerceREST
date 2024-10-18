@@ -1,11 +1,18 @@
-from django_filters.rest_framework import FilterSet
-from product_module.models import Product
+import django_filters
+from product_module.models import Product, ProductCategory
 
 
-class ProductFilter(FilterSet):
+class ProductFilter(django_filters.FilterSet):
+    price_gt = django_filters.NumberFilter(field_name="price", lookup_expr='gt')
+    price_lt = django_filters.NumberFilter(field_name="price", lookup_expr='lt')
+
+    category = django_filters.ModelMultipleChoiceFilter(
+        field_name="category",
+        queryset=ProductCategory.objects.filter(is_active=True),
+        to_field_name="id",
+    )
+    brand = django_filters.NumberFilter(field_name="brand__id")
+
     class Meta:
         model = Product
-        fields = {
-            'category_id': ['exact'],
-            'price': ['gt', 'lt']
-        }
+        fields = ["price_gt", "price_lt", "category", "brand"]

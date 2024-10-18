@@ -62,4 +62,4 @@ class ProductGallery(models.Model):
     class Meta:
         verbose_name = 'Product Gallery'
         verbose_name_plural = 'Product Galleries'
-        db_table = "Products_DB"
+        db_table = "Galleries_DB"

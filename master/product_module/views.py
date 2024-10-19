@@ -1,5 +1,6 @@
-from product_module.models import Product, ProductCategory, ProductBrand
-from product_module.serializers import ProductSerializer, ProductCategorySerializer, ProductBrandSerializer
+from product_module.models import Product, ProductCategory, ProductBrand, Comment
+from product_module.serializers import ProductSerializer, ProductCategorySerializer, ProductBrandSerializer, \
+    CommentSerializer
 from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet
 from rest_framework.mixins import RetrieveModelMixin
 from django_filters.rest_framework import DjangoFilterBackend
@@ -42,3 +43,10 @@ class ProductBrandViewSet(ReadOnlyModelViewSet):
 class ProductGalleryViewSet(RetrieveModelMixin, GenericViewSet):
     serializer_class = ProductBrandSerializer
     queryset = ProductBrand.objects.filter(is_active=True)
+
+
+class CommentViewSet(ReadOnlyModelViewSet):
+    serializer_class = CommentSerializer
+    lookup_field = 'product_id'
+    queryset = Comment.objects.all()
+

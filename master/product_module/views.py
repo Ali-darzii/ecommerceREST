@@ -2,15 +2,17 @@ from product_module.models import Product, ProductCategory, ProductBrand, Commen
 from product_module.serializers import ProductSerializer, ProductCategorySerializer, ProductBrandSerializer, \
     CommentSerializer
 from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet
-from rest_framework.mixins import RetrieveModelMixin
+from rest_framework.mixins import RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db.models import Count
 from product_module.tasks import product_visited
 from utils.filters import ProductFilter
 from rest_framework.response import Response
-
 from utils.utils import get_client_ip
+from rest_framework.decorators import api_view
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.serializers import ValidationError
 
 
 class ProductViewSet(ReadOnlyModelViewSet):
@@ -45,8 +47,32 @@ class ProductGalleryViewSet(RetrieveModelMixin, GenericViewSet):
     queryset = ProductBrand.objects.filter(is_active=True)
 
 
-class CommentViewSet(ReadOnlyModelViewSet):
+class CommentViewSet(CreateModelMixin, UpdateModelMixin, DestroyModelMixin, GenericViewSet):
+    permission_classes = [IsAuthenticated]
     serializer_class = CommentSerializer
-    lookup_field = 'product_id'
     queryset = Comment.objects.all()
 
+    def perform_create(self, serializer):
+        if serializer.instance.user != self.request.user:
+            raise ValidationError("You can't create another user's comment.")
+        serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        if serializer.instance.user != self.request.user:
+            raise ValidationError("You can't update another user's comment.")
+        serializer.save(user=self.request.user)
+
+    def perform_destroy(self, instance):
+        if instance.user != self.request.user:
+            raise ValidationError("You can't  remove another user's comment")
+        instance.delete()
+
+
+@api_view(['POST'])
+def like_comment(request, product_id):
+    pass
+
+
+@api_view(['POST'])
+def dislike_comment(request, product_id):
+    pass

@@ -80,9 +80,6 @@ class ProductVisit(models.Model):
         verbose_name_plural = 'Product Visits'
 
 
-# todo:comment
-# todo:like, dislike comment
-
 class Comment(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="product_comment")
     parent = models.ForeignKey("Comment", on_delete=models.CASCADE, null=True, blank=True)

@@ -8,13 +8,13 @@ from utils.Responses import ErrorResponses, NotAuthenticated
 from utils.utils import otp_code_generator, create_user_agent
 from django.conf import settings
 from auth_module.serializers import PhoneOTPSerializer, SetPasswordSerializer, LoginSerializer, EmailSerializer, \
-    UserProfileSerializer
+    UserProfileSerializer, UserSerializer
 from utils.utils import get_client_ip
 from django.utils import timezone
 from rest_framework import status
 from django.core.cache import cache as redis
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import api_view, throttle_classes, action
+from rest_framework.decorators import api_view, throttle_classes, action, permission_classes
 from utils.throttling import OTPPostThrottle, OTPPutThrottle, SetPasswordThrottle, PhoneLoginThrottle, \
     EmailLoginThrottle, EmailSendCodeThrottle, EmailCheckCodeThrottle
 from django.utils.crypto import get_random_string
@@ -87,13 +87,10 @@ class PhoneOTPRegisterView(APIView):
 
 
 @api_view(['POST'])
+@permission_classes([NotAuthenticated])
 @throttle_classes([SetPasswordThrottle])
 def set_password(request, pk=None):
     """ for first time, SetPassword and login """
-
-    if request.headers.get("Authorization") is not None:
-        return Response(data={"detail": "Client could not be authenticated."}, status=status.HTTP_401_UNAUTHORIZED)
-
     if pk is None:
         return Response(ErrorResponses.MISSING_PARAMS, status=status.HTTP_400_BAD_REQUEST)
 
@@ -256,3 +253,11 @@ class UserProfileViewSet(ModelViewSet):
         if serializer.instance.user != self.request.user:
             raise ValidationError("You cannot update another user's profile.")
         serializer.save(user=self.request.user)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def UserInformation(request):
+    serializer = UserSerializer(request.user)
+    return Response(serializer.data)
+

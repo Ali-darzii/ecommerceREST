@@ -83,9 +83,25 @@ class EmailSerializer(serializers.Serializer):
         return email
 
 
+class UserSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(source="user_profiles.avatar")
+
+    class Meta:
+        model = User
+        fields = ["phone_no", "email", "email_activate", "avatar"]
+
+
+class UserPartialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["phone_no", "email", "email_activate"]
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
     avatar = serializers.ImageField(required=False)
 
     class Meta:
         model = UserProfile
-        fields = ['avatar', 'address', 'city', 'postal_code']
+        fields = ['avatar', 'address', 'city', 'postal_code', 'user']
+
+    user = UserPartialSerializer(read_only=True)

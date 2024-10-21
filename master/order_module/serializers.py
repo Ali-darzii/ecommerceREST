@@ -7,3 +7,8 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = ['total_price', 'total_products']
 
+class OrderDetailSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Order
+        fields = "__all__"

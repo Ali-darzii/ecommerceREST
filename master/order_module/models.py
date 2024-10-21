@@ -28,6 +28,7 @@ class Order(models.Model):
     def calculate_final_price(self):
         for order_detail in self.detail_order.all():
             order_detail.final_price = order_detail.product.price * order_detail.count
+            self.save()
         self.save()
 
     def count_total_products(self):

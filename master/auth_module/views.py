@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from auth_module.models import User, UserProfile
 from auth_module.tasks import send_message, user_login_signal, user_login_failed_signal, user_created_signal, send_email
+from order_module.models import Order
 from utils.Responses import ErrorResponses, NotAuthenticated
 from utils.utils import otp_code_generator, create_user_agent
 from django.conf import settings
@@ -112,6 +113,7 @@ def set_password(request, pk=None):
     user.save()
     user_login_signal.apply_async(args=(create_user_agent(request), get_client_ip(request), user.id,))
     UserProfile.objects.create(user=user)
+    Order.objects.create(user=user)
     data = {
         "access_token": str(AccessToken.for_user(user)),
         "refresh_token": str(RefreshToken.for_user(user)),

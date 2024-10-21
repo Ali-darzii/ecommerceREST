@@ -2,6 +2,7 @@ import re
 
 from rest_framework import serializers
 from auth_module.models import User, UserProfile
+from order_module.serializers import OrderSerializer
 from utils.Responses import ErrorResponses
 from utils.utils import create_user_agent, get_client_ip
 from .tasks import user_login_failed_signal
@@ -85,10 +86,15 @@ class EmailSerializer(serializers.Serializer):
 
 class UserSerializer(serializers.ModelSerializer):
     avatar = serializers.ImageField(source="user_profiles.avatar")
+    order = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["phone_no", "email", "email_activate", "avatar"]
+        fields = ["phone_no", "email", "email_activate", "avatar", "order"]
+
+    def get_order(self, obj):
+        order = obj.order.filter(is_paid=False)
+        return OrderSerializer(order, many=True).data
 
 
 class UserPartialSerializer(serializers.ModelSerializer):
@@ -99,9 +105,8 @@ class UserPartialSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     avatar = serializers.ImageField(required=False)
+    user = UserPartialSerializer(read_only=True)
 
     class Meta:
         model = UserProfile
         fields = ['avatar', 'address', 'city', 'postal_code', 'user']
-
-    user = UserPartialSerializer(read_only=True)

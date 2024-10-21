@@ -4,7 +4,7 @@ from product_module.models import Product
 
 
 class Order(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='order')
     is_paid = models.BooleanField(default=False)
     payment_date = models.DateField(null=True)
     total_products = models.IntegerField(default=0)

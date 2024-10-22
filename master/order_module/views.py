@@ -52,10 +52,10 @@ class MakeOrderAPIView(APIView):
         product_id = request.GET.get("product")
         deside = request.GET.get("deside")
         try:
-            order_detail = OrderDetail.objects.get(order__user=request.user, product_id=product_id,
-                                                   order__is_paid=False)
-        except OrderDetail.DoesNotExist:
-            return Response(data=ErrorResponses.OBJECT_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+            order = Order.objects.get(user=request.user, is_paid=False)
+        except Order.DoesNotExist:
+            return Response(ErrorResponses.OBJECT_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+        order_detail, created = OrderDetail.objects.get_or_create(product_id=product_id, order=order)
         if deside == "increase":
             order_detail.count += 1
         elif deside == "increase":
@@ -68,7 +68,11 @@ class MakeOrderAPIView(APIView):
         order_detail.order.calculate_final_price()
         order_detail.order.calculate_total_price()
         order_detail.save()
-        order_details = OrderDetail.objects.filter(order__user=request.user, order__is_paid=False)
+        if created:
+            serializer = OrderDetailSerializer(order_detail)
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+        order_details = OrderDetail.objects.filter(order=order)
         serializer = OrderDetailSerializer(order_details)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 

@@ -1,6 +1,5 @@
 from rest_framework.throttling import SimpleRateThrottle
 
-
 class BaseThrottle(SimpleRateThrottle):
 
     def get_ident(self, request):

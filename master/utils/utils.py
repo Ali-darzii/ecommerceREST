@@ -1,5 +1,6 @@
 import random
 from django.conf import settings
+from rest_framework import status
 
 
 def get_client_ip(request):
@@ -27,3 +28,7 @@ def create_user_agent(request):
         "browser": request.user_agent.browser.family,
         "os": request.user_agent.os.family
     }
+
+
+def payment_gateway(price):
+    return status.HTTP_200_OK

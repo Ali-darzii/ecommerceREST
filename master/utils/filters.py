@@ -7,11 +7,13 @@ class ProductFilter(django_filters.FilterSet):
     price_lt = django_filters.NumberFilter(field_name="price", lookup_expr='lt')
 
     category = django_filters.ModelMultipleChoiceFilter(
-        field_name="category",
+        field_name="category__title",
         queryset=ProductCategory.objects.filter(is_active=True),
-        to_field_name="id",
+        to_field_name="title",
+        conjoined=True
     )
-    brand = django_filters.NumberFilter(field_name="brand__id")
+
+    brand = django_filters.CharFilter(field_name="brand__title", lookup_expr='iexac')
 
     class Meta:
         model = Product

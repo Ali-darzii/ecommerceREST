@@ -55,7 +55,7 @@ class Product(models.Model):
 
 
 class ProductGallery(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="product_gallery")
     image = models.ImageField(upload_to='images/product-gallery')
 
     def __str__(self):
@@ -78,3 +78,49 @@ class ProductVisit(models.Model):
     class Meta:
         verbose_name = 'Product Visit'
         verbose_name_plural = 'Product Visits'
+
+
+class Comment(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="product_comment")
+    parent = models.ForeignKey("Comment", on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    body = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    like = models.IntegerField(default=0)
+    diss_like = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.product.title} | {self.user.phone_no}"
+
+    class Meta:
+        verbose_name = 'Comment'
+        verbose_name_plural = 'Comments'
+        db_table = "Comment_DB"
+
+
+class Like(models.Model):
+    comment = models.OneToOneField(Comment, on_delete=models.CASCADE, related_name="likes")
+    user = models.ManyToManyField(User, related_name="user_likes")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.comment.body}"
+
+    class Meta:
+        verbose_name = 'Like'
+        verbose_name_plural = "Likes"
+        db_table = "Likes_DB"
+
+
+class DisLike(models.Model):
+    comment = models.OneToOneField(Comment, on_delete=models.CASCADE, related_name="dislikes")
+    user = models.ManyToManyField(User, related_name="user_dislikes")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.comment.body}"
+
+    class Meta:
+        verbose_name = 'DisLike'
+        verbose_name_plural = "DisLikes"
+        db_table = "DisLikes_DB"

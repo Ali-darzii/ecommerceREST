@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
+from utils.custom_user import CustomUserManager
 
 class User(AbstractUser):
     username = None
@@ -9,14 +9,25 @@ class User(AbstractUser):
     email_activate = models.BooleanField(default=False)
     USERNAME_FIELD = "phone_no"
     REQUIRED_FIELDS = []
+    objects = CustomUserManager()
 
     def __str__(self):
         return self.phone_no
+
+    def create_superuser(self, username, email=None, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
 
     class Meta:
         verbose_name = "User"
         verbose_name_plural = "Users"
         db_table = "User_DB"
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_profiles')
     avatar = models.ImageField(upload_to='images/avatar', null=True)

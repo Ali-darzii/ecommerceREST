@@ -13,5 +13,6 @@ urlpatterns = [
     path("auth/logout/", views.UserLogoutView.as_view(), name="logg_out"),
     path("auth/send_mail/", views.EmailView.as_view(), name="send_mail"),
     path("auth/send_mail/<str:code>/", views.EmailView.as_view(), name="send_mail_get"),
+    path("auth/user-information/", views.UserInformation, name="user_information"),
 
 ] + router.urls

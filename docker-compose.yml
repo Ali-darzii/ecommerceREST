@@ -54,6 +54,10 @@ services:
     networks:
       - live
     restart: on-failure
+    depends_on:
+      - postgres
+      - redis
+
   redis:
     image: redis:7.0.11-alpine
     container_name: ecommerce-redis

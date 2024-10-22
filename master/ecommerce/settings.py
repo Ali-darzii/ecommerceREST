@@ -179,6 +179,7 @@ REST_FRAMEWORK = {
         'email_login': '10/minute',
         'email_send_code': '3/minute',
         'email_check_code': '10/minute',
+        'user': '5/minute'
     }
 }
 SIMPLE_JWT = {

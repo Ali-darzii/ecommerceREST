@@ -29,11 +29,11 @@ services:
       - live
   backend:
     build:
-      context: ./master
+      context: ./src
       dockerfile: Dockerfile
     container_name: ecommerce-backend
     volumes:
-      - ./master:/app/
+      - ./src:/app/
     environment:
       - ALLOWED_HOSTS=localhost,127.0.0.1
       - DEBUG=True
@@ -74,11 +74,11 @@ services:
   celery:
     container_name: ecommerce-celery
     build:
-      context: ./master
+      context: ./src
       dockerfile: Dockerfile
     command: celery --app=ecommerce worker -l INFO -Q tasks -B -E --concurrency=1
     volumes:
-      - ./master:/app/
+      - ./src:/app/
     environment:
       - ALLOWED_HOSTS=localhost,127.0.0.1
       - DEBUG=True

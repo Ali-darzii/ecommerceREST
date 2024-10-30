@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'django_filters',
+    'rest_framework_swagger',
+    'drf_yasg',
     # Internal
     'auth_module',
     'product_module',
@@ -182,6 +184,7 @@ REST_FRAMEWORK = {
         'user': '5/minute'
     }
 }
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=3),

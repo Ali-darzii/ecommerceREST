@@ -9,7 +9,7 @@ from .tasks import user_login_failed_signal
 
 
 class PhoneOTPSerializer(serializers.Serializer):
-    phone_no = serializers.CharField(required=True, max_length=11)
+    phone_no = serializers.CharField(required=True, max_length=11, min_length=11)
     tk = serializers.CharField(required=False)
 
     def validate_tk(self, tk):

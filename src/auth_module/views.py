@@ -4,6 +4,7 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from auth_module.models import User, UserProfile
 from auth_module.tasks import send_message, user_login_signal, user_login_failed_signal, user_created_signal, send_email
 from order_module.models import Order
+from utils import document
 from utils.Responses import ErrorResponses, NotAuthenticated
 from utils.utils import otp_code_generator, create_user_agent
 from django.conf import settings
@@ -20,6 +21,8 @@ from utils.throttling import OTPPostThrottle, OTPPutThrottle, SetPasswordThrottl
 from django.utils.crypto import get_random_string
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.serializers import ValidationError
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 
 class PhoneOTPRegisterView(APIView):
@@ -27,6 +30,23 @@ class PhoneOTPRegisterView(APIView):
 
     permission_classes = [NotAuthenticated]
 
+    @swagger_auto_schema(operation_id="send_phone_msg",
+                         responses={
+                             201: document.OTPSuccessful,  # Define success response
+                             400: openapi.Response(
+                                 description="Bad Format",
+                                 schema=document.general_error_schema,),
+                             429: openapi.Response(
+                                 description="Not Found",
+                                 schema=document.general_error_schema),
+                         },
+                         request_body=openapi.Schema(
+                             type=openapi.TYPE_OBJECT,
+                             required=['phone_no'],
+                             properties={
+                                 'phone_no': openapi.Schema(type=openapi.TYPE_STRING),
+                             })
+                         )
     def post(self, request):
 
         """  Send OTP """
@@ -55,9 +75,27 @@ class PhoneOTPRegisterView(APIView):
 
         return Response(data={"detail": "Sent."}, status=status.HTTP_201_CREATED)
 
+    @swagger_auto_schema(operation_id="send_phone_msg",
+                         responses={
+                             201: document.OTPCheckSuccessful,
+                             200: document.OTPCheckNotActiveSuccessful,
+                             400: openapi.Response(
+                                 description="Bad Format",
+                                 schema=document.general_error_schema,),
+                             429: openapi.Response(
+                                 description="Not Found",
+                                 schema=document.general_error_schema),
+                         },
+                         request_body=openapi.Schema(
+                             type=openapi.TYPE_OBJECT,
+                             required=['phone_no', "tk"],
+                             properties={
+                                 'phone_no': openapi.Schema(type=openapi.TYPE_STRING),
+                                 'tk': openapi.Schema(type=openapi.TYPE_STRING),
+                             })
+                         )
     def put(self, request):
         """ Check OTP and create_user or user(not active) """
-        print(self.throttle_classes)
         serializer = PhoneOTPSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         phone_no = serializer.validated_data.get('phone_no')
@@ -260,4 +298,3 @@ class UserProfileViewSet(ModelViewSet):
 def UserInformation(request):
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
-

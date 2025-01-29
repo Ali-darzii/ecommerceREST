@@ -30,7 +30,7 @@ class CommentSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = '__all__'
+        exclude = ('is_active',)
 
     category = ProductCategorySerializer(many=True)
     product_gallery = ProductGallerySerializer(many=True)

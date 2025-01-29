@@ -2,7 +2,7 @@ from product_module.models import Product, ProductCategory, ProductBrand, Commen
 from product_module.serializers import ProductSerializer, ProductCategorySerializer, ProductBrandSerializer, \
     CommentSerializer
 from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet
-from rest_framework.mixins import RetrieveModelMixin, CreateModelMixin, UpdateModelMixin, DestroyModelMixin
+from rest_framework.mixins import RetrieveModelMixin, CreateModelMixin, DestroyModelMixin
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db.models import Count
@@ -25,6 +25,7 @@ class ProductViewSet(ReadOnlyModelViewSet):
     ordering_fields = ['price', 'visit_count']
 
     def get_queryset(self):
+        
         return Product.objects.filter(is_active=True).annotate(visit_count=Count("productvisit"))
 
     def retrieve(self, request, *args, **kwargs):

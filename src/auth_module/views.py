@@ -70,7 +70,6 @@ class PhoneOTPRegisterView(APIView):
             redis.expire(f'{phone_no}_otp', otp_exp)
         else:
             return Response(data={'detail': "not sent, please wait."}, status=status.HTTP_429_TOO_MANY_REQUESTS)
-
         send_message.apply_async(args=(phone_no, token))
 
         return Response(data={"detail": "Sent."}, status=status.HTTP_201_CREATED)
@@ -190,7 +189,7 @@ class UserLoginView(APIView):
         email = serializer.validated_data.get("email")
         password = serializer.validated_data.get("password")
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(email)
         except User.DoesNotExist:
             return Response(data=ErrorResponses.WRONG_LOGIN_DATA, status=status.HTTP_400_BAD_REQUEST)
 

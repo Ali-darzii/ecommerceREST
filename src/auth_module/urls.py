@@ -7,12 +7,12 @@ router = routers.DefaultRouter()
 router.register(r'profile', views.UserProfileViewSet, basename='projects')
 
 urlpatterns = [
-    path("auth/otp/", views.PhoneOTPRegisterView.as_view(), name="otp"),
-    path("auth/set-password/<int:pk>/", views.set_password, name="otp"),
-    path("auth/login/", views.UserLoginView.as_view(), name="logg_in"),
-    path("auth/logout/", views.UserLogoutView.as_view(), name="logg_out"),
-    path("auth/send_mail/", views.EmailView.as_view(), name="send_mail"),
-    path("auth/send_mail/<str:code>/", views.EmailView.as_view(), name="send_mail_get"),
-    path("auth/user-information/", views.UserInformation, name="user_information"),
+    path("register/otp/", views.PhoneOTPRegisterView.as_view(), name="otp"),
+    path("register/set-password/<int:pk>/", views.set_password, name="otp"),
+    path("login/", views.UserLoginView.as_view(), name="logg_in"),
+    path("logout/", views.UserLogoutView.as_view(), name="logg_out"),
+    path("send_mail/", views.EmailView.as_view(), name="send_mail"),
+    path("send_mail/<str:code>/", views.EmailView.as_view(), name="send_mail_get"),
+    path("user-information/", views.UserInformation, name="user_information"),
 
 ] + router.urls

@@ -3,6 +3,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from utils.custom_user import CustomUserManager
 
+
 class User(AbstractUser):
     username = None
     phone_no = models.CharField(_("phone number"), unique=True, max_length=11, db_index=True)
@@ -27,6 +28,7 @@ class User(AbstractUser):
         verbose_name = "User"
         verbose_name_plural = "Users"
         db_table = "User_DB"
+
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_profiles')

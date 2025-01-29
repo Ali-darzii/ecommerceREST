@@ -1,6 +1,6 @@
 from product_module.models import Product, ProductCategory, ProductBrand, Comment
-from product_module.serializers import ProductSerializer, ProductCategorySerializer, ProductBrandSerializer, \
-    CommentSerializer
+from product_module.serializers import ProductCategorySerializer, ProductBrandSerializer, \
+    CommentSerializer, ProductDetailSerializer, ProductListSerializer
 from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet
 from rest_framework.mixins import RetrieveModelMixin, CreateModelMixin, DestroyModelMixin
 from django_filters.rest_framework import DjangoFilterBackend
@@ -18,21 +18,24 @@ from rest_framework import status
 
 
 class ProductViewSet(ReadOnlyModelViewSet):
-    serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = ProductFilter
     search_fields = ['name', 'description']
     ordering_fields = ['price', 'visit_count']
 
     def get_queryset(self):
-        
-        return Product.objects.filter(is_active=True).annotate(visit_count=Count("productvisit"))
+        return Product.active_objects.annotate(visit_count=Count("productvisit"))
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         product_visited.apply_async(args=(instance.id, get_client_ip(request), request.user.id))
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return ProductDetailSerializer
+        return ProductListSerializer
 
 
 class ProductCategoryViewSet(ReadOnlyModelViewSet):

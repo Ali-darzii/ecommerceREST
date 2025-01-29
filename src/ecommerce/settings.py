@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'auth_module',
     'product_module',
     'order_module',
+    'discount_module',
 ]
 
 MIDDLEWARE = [

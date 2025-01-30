@@ -56,6 +56,10 @@ class Product(models.Model):
     objects = models.Manager()
     active_objects = ActiveProducts()
 
+    def get_discount(self):
+        product_discount = self.product_discount.filter(is_active=True).first()
+        return product_discount.discount_percentage if product_discount else 0
+
     def calculate_final_price(self):
         product_discount = self.product_discount.filter(is_active=True).first()
         return ((100 - product_discount.discount_percentage) * self.price) / 100 if product_discount else self.price

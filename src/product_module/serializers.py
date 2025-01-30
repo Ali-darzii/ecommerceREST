@@ -29,16 +29,24 @@ class CommentSerializer(serializers.ModelSerializer):
 class ProductListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        exclude = ("is_active","brand","category",)
+        exclude = ("is_active","brand","category","inventory")
 
-    # product_discount = DiscountSerializer()
+    available = serializers.SerializerMethodField()
+    final_price = serializers.IntegerField(source="calculate_final_price")
+    discount = serializers.SerializerMethodField()
 
+    def get_available(self, obj):
+        return True if obj.inventory else False
+
+    def get_discount(self, obj):
+       return obj.get_discount()
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         exclude = ("is_active",)
 
+    available = serializers.SerializerMethodField()
     final_price = serializers.IntegerField(source="calculate_final_price")
     discount = serializers.SerializerMethodField()
     category = ProductCategorySerializer(many=True)
@@ -47,5 +55,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     brand = ProductBrandSerializer()
 
     def get_discount(self, obj):
-        product_discount = obj.product_discount.filter(is_active=True).first()
-        return product_discount.discount_percentage if product_discount else 0
+       return obj.get_discount()
+
+    def get_available(self, obj):
+        return True if obj.inventory else False

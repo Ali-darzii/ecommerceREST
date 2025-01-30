@@ -2,10 +2,10 @@ from django.db import models
 
 from auth_module.models import User
 
-class ActiveProducts(models.Manager):
-    def get_query_set(self):
-        return super(ActiveProducts, self).get_query_set().filter(is_active=True)
 
+class IsActiveSet(models.Manager):
+    def get_query_set(self):
+        return super(IsActiveSet, self).get_query_set().filter(is_active=True)
 
 
 class ProductCategory(models.Model):
@@ -14,6 +14,7 @@ class ProductCategory(models.Model):
     is_active = models.BooleanField()
 
     objects = models.Manager()
+    active_objects = IsActiveSet()
 
     def __str__(self):
         return self.title
@@ -30,6 +31,8 @@ class ProductBrand(models.Model):
     is_active = models.BooleanField()
 
     objects = models.Manager()
+    active_objects = IsActiveSet()
+
     class Meta:
         verbose_name = 'brand'
         verbose_name_plural = 'brands'
@@ -54,16 +57,21 @@ class Product(models.Model):
     brand = models.ForeignKey(ProductBrand, on_delete=models.CASCADE, null=True)
 
     objects = models.Manager()
-    active_objects = ActiveProducts()
+    active_objects = IsActiveSet()
 
-    def get_discount(self):
+    @property
+    def available(self):
+        return True if self.inventory > 0 else False
+
+    @property
+    def discount(self):
         product_discount = self.product_discount.filter(is_active=True).first()
         return product_discount.discount_percentage if product_discount else 0
 
-    def calculate_final_price(self):
+    @property
+    def final_price(self):
         product_discount = self.product_discount.filter(is_active=True).first()
         return ((100 - product_discount.discount_percentage) * self.price) / 100 if product_discount else self.price
-
 
     def __str__(self):
         return self.title

@@ -31,31 +31,20 @@ class ProductListSerializer(serializers.ModelSerializer):
         model = Product
         exclude = ("is_active","brand","category","inventory")
 
-    available = serializers.SerializerMethodField()
-    final_price = serializers.IntegerField(source="calculate_final_price")
-    discount = serializers.SerializerMethodField()
+    final_price = serializers.IntegerField()
+    discount = serializers.IntegerField()
+    available = serializers.BooleanField()
 
-    def get_available(self, obj):
-        return True if obj.inventory else False
-
-    def get_discount(self, obj):
-       return obj.get_discount()
 
 class ProductDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        exclude = ("is_active",)
+        exclude = ("is_active", "inventory")
 
-    available = serializers.SerializerMethodField()
-    final_price = serializers.IntegerField(source="calculate_final_price")
-    discount = serializers.SerializerMethodField()
     category = ProductCategorySerializer(many=True)
     product_gallery = ProductGallerySerializer(many=True)
     product_comment = CommentSerializer(many=True)
     brand = ProductBrandSerializer()
-
-    def get_discount(self, obj):
-       return obj.get_discount()
-
-    def get_available(self, obj):
-        return True if obj.inventory else False
+    final_price = serializers.IntegerField()
+    discount = serializers.IntegerField()
+    available = serializers.BooleanField()

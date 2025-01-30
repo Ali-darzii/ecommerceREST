@@ -40,17 +40,17 @@ class ProductViewSet(ReadOnlyModelViewSet):
 
 class ProductCategoryViewSet(ReadOnlyModelViewSet):
     serializer_class = ProductCategorySerializer
-    queryset = ProductCategory.objects.filter(is_active=True)
+    queryset = ProductCategory.active_objects.all()
 
 
 class ProductBrandViewSet(ReadOnlyModelViewSet):
     serializer_class = ProductBrandSerializer
-    queryset = ProductBrand.objects.filter(is_active=True)
+    queryset = ProductBrand.active_objects.all()
 
 
 class ProductGalleryViewSet(RetrieveModelMixin, GenericViewSet):
     serializer_class = ProductBrandSerializer
-    queryset = ProductBrand.objects.filter(is_active=True)
+    queryset = ProductBrand.active_objects.all()
 
 
 class CommentViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):

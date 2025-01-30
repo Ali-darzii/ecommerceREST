@@ -15,6 +15,9 @@ def get_client_ip(request):
 def otp_code_generator():
     return random.randint(10000, 99999)
 
+def rest_of_percentage(number, percentage):
+    return (100 - percentage) * number / 100
+
 
 def get_sms_text_message(token):
     phone_text_message = settings.PHONE_TEXT_MESSAGE

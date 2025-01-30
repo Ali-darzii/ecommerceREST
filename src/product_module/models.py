@@ -1,11 +1,8 @@
 from django.db import models
-
+from utils.utils import rest_of_percentage
 from auth_module.models import User
+from utils.manager import IsActiveSet
 
-
-class IsActiveSet(models.Manager):
-    def get_query_set(self):
-        return super(IsActiveSet, self).get_query_set().filter(is_active=True)
 
 
 class ProductCategory(models.Model):
@@ -63,15 +60,18 @@ class Product(models.Model):
     def available(self):
         return True if self.inventory > 0 else False
 
+    # todo: duplicat query
     @property
     def discount(self):
-        product_discount = self.product_discount.filter(is_active=True).first()
+        product_discount = self.product_discount.active_objects.first()
         return product_discount.discount_percentage if product_discount else 0
 
     @property
     def final_price(self):
-        product_discount = self.product_discount.filter(is_active=True).first()
-        return ((100 - product_discount.discount_percentage) * self.price) / 100 if product_discount else self.price
+        product_discount = self.product_discount.active_objects.first()
+        if product_discount:
+            return rest_of_percentage(self.price, product_discount.discount_percentage)
+        return self.price
 
     def __str__(self):
         return self.title

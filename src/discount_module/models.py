@@ -1,6 +1,5 @@
 from django.db import models
-import math
-
+from utils.manager import IsActiveSet
 from product_module.models import Product
 
 
@@ -8,8 +7,8 @@ class ProductDiscount(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_discount')
     is_active = models.BooleanField(default=True)
     discount_percentage = models.PositiveIntegerField()
-
-
+    objects = models.Manager()
+    active_objects = IsActiveSet()
 
 
     def __str__(self):

@@ -75,7 +75,6 @@ class CommentViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
 class LikeOrDisLikeComment(APIView):
     permission_classes = [IsAuthenticated]
 
-
     def get_comment(self):
         try:
             return Comment.objects.get(pk=self.kwargs.get("comment_id"))
@@ -83,34 +82,32 @@ class LikeOrDisLikeComment(APIView):
             return Response(data=ErrorResponses.OBJECT_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request, comment_id):
-        """ Like or remove Like a comment  """
+        """ add Like or remove Like a comment  """
         comment = self.get_comment()
+        serializer = CommentSerializer(instance=comment)
         if request.user in comment.likes.user.all():
-            # remove his like
             comment.likes.user.remove(request.user)
             comment.save()
-            return Response(data=CommentSerializer(data=comment), status=status.HTTP_200_OK)
-        # submit his like
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
         comment.likes.user.add(request.user)
         comment.dislikes.user.remove(request.user)
         comment.diss_like = comment.dislikes.user.count()
         comment.save()
-        return Response(data=CommentSerializer(data=comment), status=status.HTTP_200_OK)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request, comment_id):
-        """ Dislike a comment """
+        """ add Dislike or remove Dislike a comment """
         comment = self.get_comment()
+        serializer = CommentSerializer(instance=comment)
         if request.user in comment.dislikes.user.all():
-            # remove his dislike
             comment.dislikes.user.remove(request.user)
             comment.save()
-            return Response(data=CommentSerializer(data=comment), status=status.HTTP_200_OK)
-        # submit his dislike
+            return Response(data=serializer.data, status=status.HTTP_200_OK)
         comment.dislikes.user.add(request.user)
         comment.likes.user.remove(request.user)
         comment.like = comment.likes.user.count()
         comment.save()
-        return Response(data=CommentSerializer(data=comment), status=status.HTTP_200_OK)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 
 @permission_classes([IsAuthenticated])

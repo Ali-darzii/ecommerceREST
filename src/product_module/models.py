@@ -2,7 +2,7 @@ from django.db import models
 from utils.utils import rest_of_percentage
 from auth_module.models import User
 from utils.manager import IsActiveSet
-
+from django.utils.functional import cached_property
 
 
 class ProductCategory(models.Model):
@@ -60,15 +60,19 @@ class Product(models.Model):
     def available(self):
         return True if self.inventory > 0 else False
 
-    # todo: duplicat query
+    @cached_property
+    def active_discount(self):
+        return self.product_discount.active_objects.first()
+
+
     @property
     def discount(self):
-        product_discount = self.product_discount.active_objects.first()
+        product_discount = self.active_discount
         return product_discount.discount_percentage if product_discount else 0
 
     @property
     def final_price(self):
-        product_discount = self.product_discount.active_objects.first()
+        product_discount = self.active_discount
         if product_discount:
             return rest_of_percentage(self.price, product_discount.discount_percentage)
         return self.price

@@ -3,7 +3,8 @@ from utils.utils import rest_of_percentage
 from auth_module.models import User
 from utils.manager import IsActiveSet
 from django.utils.functional import cached_property
-
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class ProductCategory(models.Model):
     title = models.CharField(max_length=300, db_index=True)
@@ -122,10 +123,17 @@ class Comment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     body = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
-    like = models.IntegerField(default=0)
-    diss_like = models.IntegerField(default=0)
 
     objects = models.Manager()
+
+    @property
+    def like_count(self):
+        return self.likes.user.count()
+
+    @property
+    def dislike_count(self):
+        return self.dislikes.user.count()
+
 
     def __str__(self):
         return f"{self.product.title} | {self.user.phone_no}"
@@ -166,3 +174,10 @@ class DisLike(models.Model):
         verbose_name = 'DisLike'
         verbose_name_plural = "DisLikes"
         db_table = "DisLikes_DB"
+
+
+@receiver(post_save,sender=Comment)
+def create_comment_like_dislike(sender, instance, created, **kwargs):
+    if created and isinstance(instance, Comment):
+        Like.objects.create(comment=instance)
+        DisLike.objects.create(comment=instance)

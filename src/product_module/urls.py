@@ -10,7 +10,7 @@ router.register(r'products-brand', views.ProductBrandViewSet, basename='products
 router.register(r'products-comment', views.CommentViewSet, basename='products-comment')
 
 urlpatterns = [
-    path("comment/<str:deside>/<int:comment_id>/", views.like_comment, name="like_comment"),
+    path("comment/<int:comment_id>/", views.LikeOrDisLikeComment.as_view(), name="like_dislike_comment"),
 
 ]
 urlpatterns += router.urls

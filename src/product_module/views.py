@@ -1,3 +1,5 @@
+from rest_framework.views import APIView
+
 from product_module.models import Product, ProductCategory, ProductBrand, Comment
 from product_module.serializers import ProductCategorySerializer, ProductBrandSerializer, \
     CommentSerializer, ProductDetailSerializer, ProductListSerializer
@@ -70,6 +72,47 @@ class CommentViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
         instance.delete()
 
 
+class LikeOrDisLikeComment(APIView):
+    permission_classes = [IsAuthenticated]
+
+
+    def get_comment(self):
+        try:
+            return Comment.objects.get(pk=self.kwargs.get("comment_id"))
+        except Comment.DoesNotExist:
+            return Response(data=ErrorResponses.OBJECT_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, comment_id):
+        """ Like or remove Like a comment  """
+        comment = self.get_comment()
+        if request.user in comment.likes.user.all():
+            # remove his like
+            comment.likes.user.remove(request.user)
+            comment.save()
+            return Response(data=CommentSerializer(data=comment), status=status.HTTP_200_OK)
+        # submit his like
+        comment.likes.user.add(request.user)
+        comment.dislikes.user.remove(request.user)
+        comment.diss_like = comment.dislikes.user.count()
+        comment.save()
+        return Response(data=CommentSerializer(data=comment), status=status.HTTP_200_OK)
+
+    def put(self, request, comment_id):
+        """ Dislike a comment """
+        comment = self.get_comment()
+        if request.user in comment.dislikes.user.all():
+            # remove his dislike
+            comment.dislikes.user.remove(request.user)
+            comment.save()
+            return Response(data=CommentSerializer(data=comment), status=status.HTTP_200_OK)
+        # submit his dislike
+        comment.dislikes.user.add(request.user)
+        comment.likes.user.remove(request.user)
+        comment.like = comment.likes.user.count()
+        comment.save()
+        return Response(data=CommentSerializer(data=comment), status=status.HTTP_200_OK)
+
+
 @permission_classes([IsAuthenticated])
 @api_view(['POST'])
 def like_comment(request, deside, comment_id):
@@ -80,8 +123,8 @@ def like_comment(request, deside, comment_id):
         return Response(data=ErrorResponses.OBJECT_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
     serializer = CommentSerializer(comment)
     if deside == "like":
-        # remove his like
         if request.user in comment.likes.user.all():
+            # remove his like
             comment.likes.user.remove(request.user)
             comment.like = comment.like - 1
             comment.save()

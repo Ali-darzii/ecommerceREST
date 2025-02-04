@@ -3,33 +3,29 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from utils.custom_user import CustomUserManager
 from django.db.models.signals import post_save
-from django.dispatch import receiver, Signal
-from django.contrib.auth import user_logged_in
+from django.dispatch import receiver
+from django.contrib.auth import user_logged_in, user_login_failed
 from utils.utils import get_client_ip
-
-login_failed = Signal(providing_args=["request", "user"])
-
 
 
 class User(AbstractUser):
     username = None
     phone_no = models.CharField(_("phone number"), unique=True, max_length=11, db_index=True)
-    email_activate = models.BooleanField(default=False)
     USERNAME_FIELD = "phone_no"
     REQUIRED_FIELDS = []
     objects = CustomUserManager()
 
+    @property
+    def email_activate(self):
+        return True if self.email else False
+
+    @property
+    def avatar(self):
+        return self.user_profile.avatar
+
+
     def __str__(self):
         return self.phone_no
-
-    def create_superuser(self, username, email=None, password=None, **extra_fields):
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
-
-        if extra_fields.get("is_staff") is not True:
-            raise ValueError("Superuser must have is_staff=True.")
-        if extra_fields.get("is_superuser") is not True:
-            raise ValueError("Superuser must have is_superuser=True.")
 
     class Meta:
         verbose_name = "User"
@@ -38,14 +34,14 @@ class User(AbstractUser):
 
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_profiles')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_profile')
     avatar = models.ImageField(upload_to='images/avatar', null=True)
     address = models.TextField(null=True)
     city = models.CharField(max_length=100, null=True)
     postal_code = models.IntegerField(null=True)
 
     def __str__(self):
-        return str(self.user.first_name) + '_profile'
+        return str(self.user.phone_no) + '_profile'
 
     class Meta:
         verbose_name = 'User Profile'
@@ -63,7 +59,7 @@ class UserLogins(models.Model):
     # no_devices = models.PositiveSmallIntegerField(default=0)
 
     def __str__(self):
-        return self.user.first_name + '_logins'
+        return self.user.phone_no + '_logins'
 
     class Meta:
         verbose_name = 'User Login'
@@ -78,7 +74,7 @@ class UserIP(models.Model):
     failed = models.BooleanField(default=False)
 
     def __str__(self):
-        return str(self.user_logins.user.first_name) + '_ip'
+        return str(self.user_logins.user.phone_no) + '_ip'
 
     class Meta:
         verbose_name = 'User IPs'
@@ -94,12 +90,15 @@ class UserDevice(models.Model):
     os = models.CharField(max_length=100)
 
     @classmethod
-    def get_user_device(cls, user_agent, user_logins_id):
-        return cls(device_name=user_agent["device_name"], is_phone=user_agent["is_phone"],
-                   browser=user_agent["browser"], os=user_agent["os"], user_logins_id=user_logins_id)
+    def get_user_device(cls, request, user):
+        device_name = request.user_agent.device.family
+        is_phone = request.user_agent.is_mobile
+        browser = request.user_agent.browser.family
+        os = request.user_agent.os.family
+        return cls(device_name=device_name, is_phone=is_phone, browser=browser, os=os, user_logins=user.user_logins)
 
     def __str__(self):
-        return str(self.user_logins.user.first_name) + '_device'
+        return str(self.user_logins.user.phone_no) + '_device'
 
     class Meta:
         verbose_name = 'User Devices'
@@ -122,6 +121,7 @@ def add_user_ip(sender, request, user, **kwargs):
     user.user_logins.save()
     ip.save()
 
+
 @receiver(signal=user_logged_in)
 def add_user_device(sender, request, user, **kwargs):
     """add user device after user logged in"""
@@ -129,13 +129,10 @@ def add_user_device(sender, request, user, **kwargs):
     device.save()
 
 
-@receiver(signal=login_failed)
+@receiver(signal=user_login_failed)
 def add_user_failed_ip(sender, request, user, **kwargs):
     """update user_logins data if failed"""
     ip = UserIP(user_logins=user.user_logins, ip=get_client_ip(request), failed=True)
     user.user_logins.failed_attempts += 1
     user.user_logins.save()
     ip.save()
-
-
-login_failed.connect(add_user_failed_ip)

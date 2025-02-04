@@ -33,7 +33,7 @@ class PhoneLoginThrottle(BaseThrottle):
 
 
 class EmailLoginThrottle(BaseThrottle):
-    scope = 'Email_login'
+    scope = 'email_login'
 
 
 class EmailSendCodeThrottle(BaseThrottle):

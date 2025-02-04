@@ -1,28 +1,27 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-from auth_module.models import User, UserProfile, login_failed
-from auth_module.tasks import send_message, user_login_signal, user_login_failed_signal, user_created_signal, send_email
-from order_module.models import Order
+from auth_module.models import User, UserProfile
 from utils import document
 from utils.Responses import ErrorResponses, NotAuthenticated
-from utils.utils import otp_code_generator, create_user_agent, get_client_ip
+from utils.utils import otp_code_generator
 from django.conf import settings
-from auth_module.serializers import PhoneOTPSerializer, LoginSerializer, EmailSerializer, \
-    UserProfileSerializer, UserSerializer
+from auth_module.serializers import PhoneSendOTPSerializer, LoginSerializer, EmailSerializer, \
+    UserProfileSerializer, UserSerializer, PhoneCheckOTPSerializer
 from django.utils import timezone
 from rest_framework import status
 from django.core.cache import cache as redis
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import api_view, throttle_classes, permission_classes
-from utils.throttling import OTPPostThrottle, OTPPutThrottle, SetPasswordThrottle, PhoneLoginThrottle, \
+from rest_framework.decorators import api_view, permission_classes
+from utils.throttling import OTPPostThrottle, OTPPutThrottle, PhoneLoginThrottle, \
     EmailLoginThrottle, EmailSendCodeThrottle, EmailCheckCodeThrottle
 from django.utils.crypto import get_random_string
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.serializers import ValidationError
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from django.contrib.auth import user_logged_in
+from django.contrib.auth import user_logged_in, user_login_failed
+from auth_module.tasks import send_message, send_email
 
 
 class PhoneOTPRegisterView(APIView):
@@ -35,7 +34,7 @@ class PhoneOTPRegisterView(APIView):
                              201: document.OTPSuccessful,  # Define success response
                              400: openapi.Response(
                                  description="Bad Format",
-                                 schema=document.general_error_schema,),
+                                 schema=document.general_error_schema, ),
                              429: openapi.Response(
                                  description="Not Found",
                                  schema=document.general_error_schema),
@@ -50,7 +49,7 @@ class PhoneOTPRegisterView(APIView):
     def post(self, request):
 
         """  Send OTP """
-        serializer = PhoneOTPSerializer(data=request.data, context={'request': request})
+        serializer = PhoneSendOTPSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         phone_no = serializer.validated_data.get("phone_no")
         otp_exp = settings.OTP_TIME_EXPIRE_DATA
@@ -74,14 +73,13 @@ class PhoneOTPRegisterView(APIView):
         else:
             return Response(data={'detail': "not sent, please wait."}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
-
     @swagger_auto_schema(operation_id="send_phone_msg",
                          responses={
                              201: document.OTPCheckSuccessful,
                              200: document.OTPCheckNotActiveSuccessful,
                              400: openapi.Response(
                                  description="Bad Format",
-                                 schema=document.general_error_schema,),
+                                 schema=document.general_error_schema, ),
                              429: openapi.Response(
                                  description="Not Found",
                                  schema=document.general_error_schema),
@@ -96,7 +94,7 @@ class PhoneOTPRegisterView(APIView):
                          )
     def put(self, request):
         """ Check OTP and create_user or user(not active) """
-        serializer = PhoneOTPSerializer(data=request.data, context={"request": request})
+        serializer = PhoneCheckOTPSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         phone_no = serializer.validated_data.get("phone_no")
         password = serializer.validated_data.get("password")
@@ -112,7 +110,12 @@ class PhoneOTPRegisterView(APIView):
         user.last_login = timezone.now()
         user.save()
         user_logged_in.send(sender=self.__class__, request=request, user=user)
-        return Response(data={"data": "User created.", "user_id": user.id}, status=status.HTTP_201_CREATED)
+        data = {
+            "access_token": str(AccessToken.for_user(user)),
+            "refresh_token": str(RefreshToken.for_user(user)),
+            "user_id": user.id,
+        }
+        return Response(data=data, status=status.HTTP_201_CREATED)
 
     def get_throttles(self):
         if self.request.method == 'POST':
@@ -137,7 +140,7 @@ class UserLoginView(APIView):
             return Response(data=ErrorResponses.WRONG_LOGIN_DATA, status=status.HTTP_400_BAD_REQUEST)
 
         if not user.check_password(password):
-            login_failed.send(sender=self.__class__, request=request, user=user)
+            user_login_failed.send(sender=self.__class__, request=request, user=user)
             return Response(data=ErrorResponses.WRONG_LOGIN_DATA, status=status.HTTP_400_BAD_REQUEST)
 
         user_logged_in.send(sender=self.__class__, request=request, user=user)
@@ -156,12 +159,12 @@ class UserLoginView(APIView):
         email = serializer.validated_data.get("email")
         password = serializer.validated_data.get("password")
         try:
-            user = User.objects.get(email)
+            user = User.objects.get(email=email)
         except User.DoesNotExist:
             return Response(data=ErrorResponses.WRONG_LOGIN_DATA, status=status.HTTP_400_BAD_REQUEST)
 
         if not user.check_password(password) or not user.email_activate:
-            login_failed.send(sender=self.__class__, request=request, user=user)
+            user_login_failed.send(sender=self.__class__, request=request, user=user)
             return Response(data=ErrorResponses.WRONG_LOGIN_DATA, status=status.HTTP_400_BAD_REQUEST)
 
         user_logged_in.send(sender=self.__class__, request=request, user=user)
@@ -231,7 +234,6 @@ class EmailView(APIView):
         activate_code = redis.get(f"{email}_code")
         if activate_code is None or activate_code != code:
             return Response(data=ErrorResponses.CODE_IS_EXPIRED_OR_INVALID, status=status.HTTP_400_BAD_REQUEST)
-        request.user.email_activate = True
         return Response(data={"detail": "Email activated."}, status=status.HTTP_200_OK)
 
     def get_throttles(self):

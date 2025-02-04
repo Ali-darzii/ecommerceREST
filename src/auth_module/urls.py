@@ -8,7 +8,6 @@ router.register(r'profile', views.UserProfileViewSet, basename='projects')
 
 urlpatterns = [
     path("register/otp/", views.PhoneOTPRegisterView.as_view(), name="otp"),
-    path("register/set-password/<int:pk>/", views.set_password, name="otp"),
     path("login/", views.UserLoginView.as_view(), name="logg_in"),
     path("logout/", views.UserLogoutView.as_view(), name="logg_out"),
     path("send_mail/", views.EmailView.as_view(), name="send_mail"),

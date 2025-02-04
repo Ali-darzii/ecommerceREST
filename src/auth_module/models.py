@@ -2,8 +2,14 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from utils.custom_user import CustomUserManager
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
+from django.db.models.signals import post_save
+from django.dispatch import receiver, Signal
+from django.contrib.auth import user_logged_in
+from utils.utils import get_client_ip
+
+login_failed = Signal(providing_args=["request", "user"])
+
+
 
 class User(AbstractUser):
     username = None
@@ -99,3 +105,37 @@ class UserDevice(models.Model):
         verbose_name = 'User Devices'
         verbose_name_plural = 'User Device'
         db_table = 'UserDevice_DB'
+
+
+@receiver(signal=post_save, sender=User)
+def create_user_logins(sender, created, instance, **kwargs):
+    """create user_logins obj after user created"""
+    if created and isinstance(instance, User):
+        UserLogins.objects.create(user=instance)
+
+
+@receiver(signal=user_logged_in)
+def add_user_ip(sender, request, user, **kwargs):
+    """add user ip after user logged in"""
+    ip = UserIP(user_logins=user.user_logins, ip=get_client_ip(request))
+    user.user_logins.no_logins += 1
+    user.user_logins.save()
+    ip.save()
+
+@receiver(signal=user_logged_in)
+def add_user_device(sender, request, user, **kwargs):
+    """add user device after user logged in"""
+    device = UserDevice.get_user_device(request, user)
+    device.save()
+
+
+@receiver(signal=login_failed)
+def add_user_failed_ip(sender, request, user, **kwargs):
+    """update user_logins data if failed"""
+    ip = UserIP(user_logins=user.user_logins, ip=get_client_ip(request), failed=True)
+    user.user_logins.failed_attempts += 1
+    user.user_logins.save()
+    ip.save()
+
+
+login_failed.connect(add_user_failed_ip)

@@ -10,7 +10,13 @@ from .tasks import user_login_failed_signal
 
 class PhoneOTPSerializer(serializers.Serializer):
     phone_no = serializers.CharField(required=True, max_length=11, min_length=11)
+    password = serializers.CharField(min_length=8, max_length=128, required=False)
     tk = serializers.CharField(required=False)
+
+    def password_validate(self, password):
+        if not re.fullmatch(r"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$",password):
+            raise serializers.ValidationError("Password must contain at least one number and one letter.")
+        return password
 
     def validate_tk(self, tk):
         if not tk.isnumeric():
@@ -21,7 +27,7 @@ class PhoneOTPSerializer(serializers.Serializer):
         if not re.match(r'^09\d{9}$', phone_no):
             raise serializers.ValidationError(detail=ErrorResponses.BAD_FORMAT)
         try:
-            user = User.objects.get(phone_no=phone_no, is_active=True)
+            user = User.objects.get(phone_no=phone_no)
             user_login_failed_signal.apply_async(
                 args=(create_user_agent(self.context["request"]), get_client_ip(self.context["request"]), user.id,))
             raise serializers.ValidationError("Phone number already taken.")
@@ -30,27 +36,9 @@ class PhoneOTPSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if self.context['request'].method == "PUT":
-            if attrs.get("tk") is None:
+            if attrs.get("tk") is None or attrs.get("password") is None:
                 raise serializers.ValidationError(ErrorResponses.MISSING_PARAMS)
         attrs = super(PhoneOTPSerializer, self).validate(attrs)
-        return attrs
-
-
-class SetPasswordSerializer(serializers.Serializer):
-    password = serializers.CharField(required=True, max_length=128)
-    confirm_password = serializers.CharField(required=True, max_length=128)
-
-    def password_validate(self, password):
-        if len(password) < 8:
-            raise serializers.ValidationError("Password must be at least 8.")
-        if not re.findall("[0,9]", password):
-            raise serializers.ValidationError("Password must contain at least one number.")
-        return password
-
-    def validate(self, attrs):
-        if attrs.get("password") != attrs.get("confirm_password"):
-            raise serializers.ValidationError("Passwords don't match.")
-        attrs = super(SetPasswordSerializer, self).validate(attrs)
         return attrs
 
 

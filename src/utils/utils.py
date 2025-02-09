@@ -35,3 +35,4 @@ def create_user_agent(request):
 
 def payment_gateway(price):
     return status.HTTP_200_OK
+

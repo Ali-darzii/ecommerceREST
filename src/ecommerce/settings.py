@@ -199,7 +199,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'ali.darrzi.1382@gmail.com'
 EMAIL_HOST_PASSWORD = 'pmmmvkfijdjbgrni'
 EMAIL_PORT = 587
-EMAIL_CODE_TIME_OUT = 180  # 3min
+EMAIL_CODE_TIME_OUT = 120  # 3min
 
 # Celery configs
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER', 'amqp://guest:guest@rabbitmq:5672/')

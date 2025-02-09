@@ -5,7 +5,7 @@ from utils.manager import IsActiveSet
 from django.utils.functional import cached_property
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
+from django.utils import timezone
 class ProductCategory(models.Model):
     title = models.CharField(max_length=300, db_index=True)
     urls_title = models.CharField(max_length=300, db_index=True)
@@ -63,19 +63,29 @@ class Product(models.Model):
 
     @cached_property
     def active_discount(self):
-        return self.product_discount.active_objects.first()
+        """ priority: ProductDiscount > BrandDiscount > CategoryDiscount  """
+        # todo:manager has problem
+        discount = self.product_discount.now_until_end_objects.first()
+        if discount:
+            return discount
+        discount = self.brand.brand_discount.now_until_end_objects.first()
+        if discount:
+            return discount
+        discount = self.category.category_discount.now_until_end_objects.first()
+        return discount if discount else None
+
 
 
     @property
     def discount(self):
         product_discount = self.active_discount
-        return product_discount.discount_percentage if product_discount else 0
+        return product_discount.percentage if product_discount else 0
 
     @property
     def final_price(self):
         product_discount = self.active_discount
         if product_discount:
-            return rest_of_percentage(self.price, product_discount.discount_percentage)
+            return rest_of_percentage(self.price, product_discount.percentage)
         return self.price
 
     def __str__(self):

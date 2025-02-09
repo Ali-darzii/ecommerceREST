@@ -11,10 +11,4 @@ class ErrorResponses:
     SOMETHING_WENT_WRONG = {'detail': "WE_ALSO_DON'T_KNOW_WHAT_HAPPENED!", 'error_code': 7}
 
 
-class NotAuthenticated(BasePermission):
-    message = "Client could not be authenticated."
 
-    def has_permission(self, request, view):
-        if request.headers.get("Authorization") is not None:
-            return False
-        return True

@@ -6,18 +6,17 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth import user_logged_in, user_login_failed
 from utils.utils import get_client_ip
-
+from utils.manager import IsActiveSet
 
 class User(AbstractUser):
     username = None
     phone_no = models.CharField(_("phone number"), unique=True, max_length=11, db_index=True)
+    email_active = models.BooleanField(default=False)
     USERNAME_FIELD = "phone_no"
     REQUIRED_FIELDS = []
     objects = CustomUserManager()
+    active_objects = IsActiveSet()
 
-    @property
-    def email_activate(self):
-        return True if self.email else False
 
     @property
     def avatar(self):
@@ -113,6 +112,13 @@ def create_user_logins(sender, created, instance, **kwargs):
         UserLogins.objects.create(user=instance)
 
 
+@receiver(signal=post_save, sender=User)
+def create_user_logins(sender, created, instance, **kwargs):
+    """create user_logins obj after user created"""
+    if created and isinstance(instance, User):
+        UserProfile.objects.create(user=instance)
+
+
 @receiver(signal=user_logged_in)
 def add_user_ip(sender, request, user, **kwargs):
     """add user ip after user logged in"""
@@ -130,9 +136,18 @@ def add_user_device(sender, request, user, **kwargs):
 
 
 @receiver(signal=user_login_failed)
-def add_user_failed_ip(sender, request, user, **kwargs):
+def add_user_failed_ip(sender, request, credentials, **kwargs):
     """update user_logins data if failed"""
-    ip = UserIP(user_logins=user.user_logins, ip=get_client_ip(request), failed=True)
-    user.user_logins.failed_attempts += 1
-    user.user_logins.save()
-    ip.save()
+    phone_no = credentials.get("phone_no")
+    if phone_no:
+        try:
+            user = User.objects.get(phone_no=phone_no)
+            ip = UserIP(user_logins=user.user_logins, ip=get_client_ip(request), failed=True)
+            user.user_logins.failed_attempts += 1
+            user.user_logins.save()
+            ip.save()
+        except User.DoesNotExist:
+            pass
+
+
+

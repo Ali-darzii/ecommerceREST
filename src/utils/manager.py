@@ -1,12 +1,13 @@
 from django.utils import timezone
-from django.db.models import Manager
-
-class IsActiveSet(Manager):
-    def get_query_set(self):
-        return super(IsActiveSet, self).get_query_set().filter(is_active=True)
+from django.db import models
 
 
-class NowUntilEndSet(Manager):
-    def get_query_set(self):
+class IsActiveSet(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_active=True)
+
+
+class NowUntilEndSet(models.Manager):
+    def get_queryset(self):
         now = timezone.now()
-        return super(NowUntilEndSet, self).get_query_set().filter(is_active=True,start_date__lte=now, end_date__gt=now)
+        return super().get_queryset().filter(is_active=True, start_date__lte=now, end_date__gt=now)

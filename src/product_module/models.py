@@ -1,11 +1,14 @@
 from django.db import models
+
 from utils.utils import rest_of_percentage
 from auth_module.models import User
-from utils.manager import IsActiveSet
+from utils.manager import IsActiveSet, NowUntilEndSet
 from django.utils.functional import cached_property
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
+
+
 class ProductCategory(models.Model):
     title = models.CharField(max_length=300, db_index=True)
     urls_title = models.CharField(max_length=300, db_index=True)
@@ -59,22 +62,23 @@ class Product(models.Model):
 
     @property
     def available(self):
-        return True if self.inventory > 0 else False
+        return self.inventory > 0
 
     @cached_property
     def active_discount(self):
         """ priority: ProductDiscount > BrandDiscount > CategoryDiscount  """
-        # todo:manager has problem
-        discount = self.product_discount.now_until_end_objects.first()
+        from discount_module.models import ProductDiscount, BrandDiscount, CategoryDiscount
+
+        discount = ProductDiscount.now_until_end_objects.filter(product=self).first()
         if discount:
             return discount
-        discount = self.brand.brand_discount.now_until_end_objects.first()
+        discount = BrandDiscount.now_until_end_objects.filter(brand__product=self).first()
         if discount:
             return discount
-        discount = self.category.category_discount.now_until_end_objects.first()
-        return discount if discount else None
-
-
+        discount = CategoryDiscount.now_until_end_objects.filter(category__in=self.category.all()).first()
+        if discount:
+            return discount
+        return None
 
     @property
     def discount(self):
@@ -144,7 +148,6 @@ class Comment(models.Model):
     def dislike_count(self):
         return self.dislikes.user.count()
 
-
     def __str__(self):
         return f"{self.product.title} | {self.user.phone_no}"
 
@@ -186,7 +189,7 @@ class DisLike(models.Model):
         db_table = "DisLikes_DB"
 
 
-@receiver(post_save,sender=Comment)
+@receiver(post_save, sender=Comment)
 def create_comment_like_dislike(sender, instance, created, **kwargs):
     if created and isinstance(instance, Comment):
         Like.objects.create(comment=instance)

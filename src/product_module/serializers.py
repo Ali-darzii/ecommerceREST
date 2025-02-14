@@ -24,13 +24,15 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = '__all__'
+
     like_count = serializers.IntegerField(read_only=True)
     dislike_count = serializers.IntegerField(read_only=True)
+
 
 class ProductListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        exclude = ("is_active","brand","category","inventory")
+        exclude = ("is_active", "brand", "category", "inventory")
 
     final_price = serializers.IntegerField()
     discount = serializers.IntegerField()

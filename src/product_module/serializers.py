@@ -46,7 +46,6 @@ class ProductDetailSerializer(serializers.ModelSerializer):
 
     category = ProductCategorySerializer(many=True)
     product_gallery = ProductGallerySerializer(many=True)
-    product_comment = CommentSerializer(many=True)
     brand = ProductBrandSerializer()
     final_price = serializers.IntegerField()
     discount = serializers.IntegerField()

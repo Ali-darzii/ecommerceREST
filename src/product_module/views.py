@@ -4,13 +4,15 @@ from product_module.models import Product, ProductCategory, ProductBrand, Commen
 from product_module.serializers import ProductCategorySerializer, ProductBrandSerializer, \
     CommentSerializer, ProductDetailSerializer, ProductListSerializer
 from rest_framework.viewsets import ReadOnlyModelViewSet, GenericViewSet
-from rest_framework.mixins import RetrieveModelMixin, CreateModelMixin, DestroyModelMixin
+from rest_framework import mixins
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db.models import Count
 from product_module.tasks import product_visited, comment_created
 from utils.filters import ProductFilter
 from rest_framework.response import Response
+
+from utils.permission import IsOwner
 from utils.utils import get_client_ip
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -50,26 +52,29 @@ class ProductBrandViewSet(ReadOnlyModelViewSet):
     queryset = ProductBrand.active_objects.all()
 
 
-class ProductGalleryViewSet(RetrieveModelMixin, GenericViewSet):
+class ProductGalleryViewSet(mixins.RetrieveModelMixin, GenericViewSet):
     serializer_class = ProductBrandSerializer
     queryset = ProductBrand.active_objects.all()
 
 
-class CommentViewSet(CreateModelMixin, DestroyModelMixin, GenericViewSet):
-    permission_classes = [IsAuthenticated]
+class CommentViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, ReadOnlyModelViewSet):
+    # permission_classes = [IsOwner,IsAuthenticated]
     serializer_class = CommentSerializer
     queryset = Comment.objects.all()
 
-    def perform_create(self, serializer):
-        if serializer.validated_data.get("user") != self.request.user:
-            raise ValidationError("You can't create another user's comment.")
-        serializer.save()
-        comment_created.apply_async(args=(serializer.instance.id,))
+    def get_permissions(self):
+        if self.action == "create" or self.action == "destroy":
+            self.permission_classes = [IsOwner, IsAuthenticated]
 
-    def perform_destroy(self, instance):
-        if instance.user != self.request.user:
-            raise ValidationError("You can't  remove another user's comment")
-        instance.delete()
+    # def perform_create(self, serializer):
+    #     if serializer.validated_data.get("user") != self.request.user:
+    #         raise ValidationError("You can't create another user's comment.")
+    #     serializer.save()
+
+    # def perform_destroy(self, instance):
+    #     if instance.user != self.request.user:
+    #         raise ValidationError("You can't  remove another user's comment")
+    #     instance.delete()
 
 
 class LikeOrDisLikeComment(APIView):

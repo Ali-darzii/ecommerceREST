@@ -252,14 +252,14 @@ class EmailView(APIView):
 
 
 class UserProfileView(mixins.UpdateModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
-    permission_classes = [IsOwner]
+    permission_classes = [IsOwner, IsAuthenticated]
     serializer_class = UserProfileSerializer
     queryset = UserProfile.objects.all()
     lookup_field = "user_id"
 
 
 class UserFullInformationView(mixins.UpdateModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
-    permission_classes = [IsOwner]
+    permission_classes = [IsOwner, IsAuthenticated]
     queryset = User.active_objects.all()
     serializer_class = UserFullInformationSerializer
 

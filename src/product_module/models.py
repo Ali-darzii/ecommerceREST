@@ -123,6 +123,10 @@ class ProductVisit(models.Model):
 
     objects = models.Manager()
 
+    @classmethod
+    def add_product_visit(cls):
+        pass
+
     def __str__(self):
         return f"{self.product.title} | {self.ip}"
 

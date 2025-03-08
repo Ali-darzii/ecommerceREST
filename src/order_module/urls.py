@@ -5,4 +5,5 @@ urlpatterns = [
     path("make-order/", views.MakeOrderAPIView.as_view(), name="order"),
     path("make-order/<str:deside>/<int:order_detail_id>/", views.MakeOrderAPIView.as_view(), name="order"),
     path("make-order/<str:deside>/<int:proudct_id>/", views.MakeOrderAPIView.as_view(), name="order"),
+    path("make-order/payment/<str:discount_number>", views.payment, name="payment"),
 ]

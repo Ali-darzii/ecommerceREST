@@ -1,5 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+
+from discount_module.models import NumberDiscount
 from order_module.models import OrderDetail, Order
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from order_module.serializers import OrderDetailSerializer
@@ -7,8 +9,7 @@ from utils.Responses import ErrorResponses
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.throttling import UserRateThrottle
-from utils.utils import payment_gateway
-
+from utils.utils import payment_gateway, rest_of_percentage
 
 
 # todo: need test !
@@ -75,11 +76,11 @@ class MakeOrderAPIView(APIView):
         serializer = OrderDetailSerializer(instance=order_details, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
-
+# todo: discount number need test !
 @api_view(["POST"])
 @throttle_classes([UserRateThrottle])
 @permission_classes([IsAuthenticated])
-def payment(request):
+def payment(request, discount_number):
     """ According to your payment gateway edit payment_gateway function to do your payment """
     order_details = OrderDetail.objects.filter(order__user=request.user, order__is_paid=False)
     if not order_details.exists():
@@ -90,6 +91,11 @@ def payment(request):
         return Response(data=ErrorResponses.OBJECT_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
     except Order.MultipleObjectsReturned:
         return Response(data=ErrorResponses.SOMETHING_WENT_WRONG, status=status.HTTP_300_MULTIPLE_CHOICES)
+
+    discount = NumberDiscount.objects.filter(number=discount_number).first()
+    if discount:
+        order.total_price = rest_of_percentage(order.total_price, discount)
+
     if payment_gateway(order.total_price) == status.HTTP_200_OK:
         order.is_paid = True
         order.save()

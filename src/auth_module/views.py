@@ -128,6 +128,23 @@ class PhoneOTPRegisterView(APIView):
 class UserLoginView(APIView):
     permission_classes = [NotAuthenticated]
 
+
+
+    @swagger_auto_schema(operation_id="user_phone_no_login",
+                         responses={
+                             200: document.OTPSuccessful,  # Define success response
+                             400: openapi.Response(
+                                 description="Bad Format",
+                                 schema=document.general_error_schema, ),
+                         },
+                         request_body=openapi.Schema(
+                             type=openapi.TYPE_OBJECT,
+                             required=['phone_no','password'],
+                             properties={
+                                 'phone_no': openapi.Schema(type=openapi.TYPE_STRING),
+                                 'password': openapi.Schema(type=openapi.TYPE_STRING),
+                             })
+                         )
     def post(self, request):
         """ User Login (phone_no) """
         serializer = LoginSerializer(data=request.data, context={"request": request})
@@ -152,6 +169,21 @@ class UserLoginView(APIView):
 
         return Response(data=data, status=status.HTTP_200_OK)
 
+    @swagger_auto_schema(operation_id="user_email_login",
+                         responses={
+                             200: document.OTPSuccessful,
+                             400: openapi.Response(
+                                 description="Bad Format",
+                                 schema=document.general_error_schema, ),
+                         },
+                         request_body=openapi.Schema(
+                             type=openapi.TYPE_OBJECT,
+                             required=['email','password'],
+                             properties={
+                                 'email': openapi.Schema(type=openapi.TYPE_STRING),
+                                 'password': openapi.Schema(type=openapi.TYPE_STRING),
+                             })
+                         )
     def put(self, request):
         """ User Login (email) """
         serializer = LoginSerializer(data=request.data, context={"request": request})
@@ -187,6 +219,22 @@ class UserLoginView(APIView):
 class UserLogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
+
+    @swagger_auto_schema(operation_id="user_phone_no_login",
+                         responses={
+                             200: document.OTPSuccessful,  # Define success response
+                             400: openapi.Response(
+                                 description="Bad Format",
+                                 schema=document.general_error_schema, ),
+                         },
+                         request_body=openapi.Schema(
+                             type=openapi.TYPE_OBJECT,
+                             required=['phone_no','password'],
+                             properties={
+                                 'phone_no': openapi.Schema(type=openapi.TYPE_STRING),
+                                 'password': openapi.Schema(type=openapi.TYPE_STRING),
+                             })
+                         )
     def post(self, request):
         """ user logout """
         try:

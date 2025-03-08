@@ -15,7 +15,8 @@ class OTPSuccessful(serializers.Serializer):
 
 
 class OTPCheckSuccessful(serializers.Serializer):
-    data = serializers.CharField(default="User created.")
+    access_token = serializers.CharField(default="User created. ")
+    refresh_token = serializers.CharField(default="User created.")
     user_id = serializers.IntegerField()
 
 

@@ -72,7 +72,7 @@ class MakeOrderAPIView(APIView):
             return Response(data=serializer.data, status=status.HTTP_200_OK)
 
         order_details = OrderDetail.objects.filter(order=order)
-        serializer = OrderDetailSerializer(order_details)
+        serializer = OrderDetailSerializer(instance=order_details, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
 

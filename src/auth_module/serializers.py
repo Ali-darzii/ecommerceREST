@@ -4,6 +4,7 @@ from django.contrib.auth.signals import user_login_failed
 from rest_framework import serializers
 from auth_module.models import User, UserProfile
 from order_module.serializers import OrderSerializer
+from order_module.views import payment
 from utils.Responses import ErrorResponses
 from utils.utils import create_user_agent, get_client_ip
 from .tasks import user_login_failed_signal
@@ -24,7 +25,7 @@ class PhoneSendOTPSerializer(serializers.Serializer):
 
 
 class PhoneCheckOTPSerializer(PhoneSendOTPSerializer):
-    tk = serializers.CharField(max_length=4, min_length=4)
+    tk = serializers.CharField(max_length=5, min_length=5)
     password = serializers.CharField(max_length=128, min_length=8)
 
     def validate_tk(self, tk):

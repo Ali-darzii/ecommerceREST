@@ -1,6 +1,8 @@
 from django.db import models
 from auth_module.models import User
 from product_module.models import Product
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class Order(models.Model):
@@ -50,3 +52,11 @@ class OrderDetail(models.Model):
         verbose_name = "Order Detail"
         verbose_name_plural = "Order Details"
         db_table = "OrderDetail_DB"
+
+
+
+@receiver(signal=post_save, sender=User)
+def create_user_logins(sender, created, instance, **kwargs):
+    """ create order obj after user created """
+    if created and isinstance(instance, User):
+        Order.objects.create(user=instance)

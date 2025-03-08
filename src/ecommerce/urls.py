@@ -41,6 +41,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("auth_module.urls"), name="authentication"),
     path("", include("product_module.urls"), name="product"),
+    path("", include("order_module.urls"), name="order"),
 
     # JWT token
     path("api/token/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),

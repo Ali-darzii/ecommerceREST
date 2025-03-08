@@ -10,6 +10,8 @@ from rest_framework.throttling import UserRateThrottle
 from utils.utils import payment_gateway
 
 
+
+# todo: need test !
 class MakeOrderAPIView(APIView):
     permission_classes = [IsAuthenticated]
     """ Add or Lower the product has been in basket """
@@ -20,10 +22,9 @@ class MakeOrderAPIView(APIView):
         serializer = OrderDetailSerializer(instance=order_details, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
-    def post(self, request):
+    def post(self, request, deside=None, order_detail_id=None):
         """ increase or decrease Product to basket with order_detail pk """
-        order_detail_id = request.GET.get("order_detail")
-        deside = request.GET.get("deside")
+
         if order_detail_id is None:
             return Response(data=ErrorResponses.BAD_FORMAT, status=status.HTTP_400_BAD_REQUEST)
 
@@ -33,24 +34,22 @@ class MakeOrderAPIView(APIView):
             return Response(data=ErrorResponses.OBJECT_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
         if deside == "increase":
             order_detail.count += 1
-        elif deside == "increase":
+        elif deside == "decrease":
             order_detail.count -= 1
-            if order_detail.count == 0:
+            if order_detail.count >= 0:
                 order_detail.delete()
-                return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return Response(data=ErrorResponses.BAD_FORMAT, status=status.HTTP_400_BAD_REQUEST)
         order_detail.order.calculate_final_price()
         order_detail.order.calculate_total_price()
         order_detail.save()
         order_details = OrderDetail.objects.filter(order_id=order_detail_id, order__is_paid=False)
-        serializer = OrderDetailSerializer(order_details)
+        serializer = OrderDetailSerializer(instance=order_details, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
-    def put(self, request):
-        """ increase or decrease or create Product to basket with product """
-        product_id = request.GET.get("product")
-        deside = request.GET.get("deside")
+    def put(self, request, deside=None, product_id=None):
+        """ increase or decrease or create Product to basket with product id """
+
         try:
             order = Order.objects.get(user=request.user, is_paid=False)
         except Order.DoesNotExist:
@@ -87,7 +86,7 @@ def payment(request):
         return Response(data=ErrorResponses.OBJECT_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
     try:
         order = Order.objects.get(user=request.user, is_paid=False)
-    except Order.MultipleObjectsReturned:
+    except Order.DoesNotExist:
         return Response(data=ErrorResponses.OBJECT_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
     except Order.MultipleObjectsReturned:
         return Response(data=ErrorResponses.SOMETHING_WENT_WRONG, status=status.HTTP_300_MULTIPLE_CHOICES)

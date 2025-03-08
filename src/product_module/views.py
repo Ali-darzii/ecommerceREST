@@ -58,9 +58,9 @@ class ProductGalleryViewSet(mixins.RetrieveModelMixin, GenericViewSet):
 
 
 class CommentViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, ReadOnlyModelViewSet):
-    # permission_classes = [IsOwner,IsAuthenticated]
     serializer_class = CommentSerializer
     queryset = Comment.objects.all()
+    lookup_url_kwarg = "product_id"
 
     def get_permissions(self):
         if self.action == "create" or self.action == "destroy":

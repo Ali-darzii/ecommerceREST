@@ -17,7 +17,7 @@ class MakeOrderAPIView(APIView):
     def get(self, request):
         """ give orders in baskets """
         order_details = OrderDetail.objects.filter(order__user=request.user, order__is_paid=False)
-        serializer = OrderDetailSerializer(order_details)
+        serializer = OrderDetailSerializer(instance=order_details, many=True)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
